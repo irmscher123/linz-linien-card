@@ -44,7 +44,6 @@ Kurz: Sie benötigen nur dieses eine Repository / diese eine Resource, um alle d
    Kategorie: `Lovelace`  
 2. HACS → Frontend → „Linz Linien Card“ installieren.
 
-> Hinweis: `hacs.json` ist im Repo vorhanden, damit HACS das Repository richtig erkennt. Erstellen Sie einen Release (Tag), z. B. `v1.0.0`, für eine saubere Versionierung.
 
 ### 2) Manuell
 1. Datei `linz-monitor-combined.js` nach `/config/www/` hochladen.  

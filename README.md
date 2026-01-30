@@ -10,27 +10,71 @@
 <img src="pictures/dashboards.png" width="800" alt="Linz Linien Dashboards">
 
 **Der moderne Abfahrtsmonitor für Home Assistant.**  
-Live‑Daten der Linz AG Linien, einfache Einrichtung und wunderschöne Dashboard‑Karten.
+Live‑Daten der Linz AG Linien, einfache Einrichtung und ansprechende Dashboard‑Karten.
 
 ---
 
 ## ✨ Features
 
-- ⚡ Echtzeit‑Daten
-- 🔍 Smart Search
-- 🎨 Drei Design‑Varianten (Mini / Midi / Maxi) — jetzt als eine kombinierte Karte
-- 📱 Responsive für Tablets & Smartphones
+- ⚡ Echtzeit‑Daten (Linz AG)  
+- 🔍 Smart Search für Haltestellen (kein Suchen nach kryptischen IDs)  
+- 🎨 Drei Design‑Varianten: Mini (v3), Midi (v2), Maxi (v1) — jetzt in einer einzigen Karte zusammengeführt  
+- 📱 Responsive: Tablets & Smartphones  
 - ⚙️ UI‑Konfiguration via Lovelace Editor
 
 ---
 
-## 🆕 WICHTIG: Änderung — Alle Dashboard‑Varianten kombiniert
+## ⚙️ Einrichtung — 1) Sensor hinzufügen (wichtig: zuerst) 🚦
 
-Ab Version 0.3a sind die bisherigen drei separaten Dashboard‑Skripte (linz-monitor-card_v1.js, _v2.js, _v3.js) in einer einzigen, kombinierten Datei zusammengeführt:  
+Bevor Sie Dashboard‑Karten nutzen, fügen Sie bitte zunächst die Integration hinzu und erzeugen den Sensor mit departureList‑Attributen.
 
-- Neue Datei: `linz-monitor-combined.js`  
-- Vorteil: Nur noch eine Ressource zu laden, zentralisierte Konfiguration, einfache Wartung.  
-- Die alten Dateien sind veraltet. Bitte entfernen Sie in Ihren Dashboards / Ressourcen alle Verweise auf `/local/linz-monitor-card_v1.js`, `/local/linz-monitor-card_v2.js` und `/local/linz-monitor-card_v3.js`.
+1. Gehen Sie zu **Einstellungen** > **Geräte & Dienste** > **Integration hinzufügen**.  
+2. Suchen Sie nach **Linz Linien Abfahrtsmonitor**.  
+3. Geben Sie den Namen der Haltestelle ein (z. B. `Simonystraße`).  
+4. Wählen Sie den korrekten Treffer aus der Liste.  
+5. Fertig — Sie haben nun einen Sensor (z. B. `sensor.simonystrasse`), den Sie in den Dashboard‑Karten auswählen.
+
+> Hinweis: Falls Sie die Karte ohne Sensor hinzufügen, zeigt sie keine Abfahrten an — daher zuerst Integration/Sensor anlegen.
+
+---
+
+## 📥 Dashboard‑Karten (separates Repo) 🗂️
+
+Wichtig: Die Dashboard‑Karten (UI/JS‑Dateien) werden in einem separaten Repository verwaltet:  
+https://github.com/irmscher123/linz-linien-card
+
+Warum?
+- Saubere Trennung: Diese Repository (linz-linien-abfahrtsmonitor) enthält die Integration (backend),  
+  während UI‑/Dashboard‑Karten (Frontend/JS) zentral in einem eigenen Repo gepflegt werden.
+
+Wo finde ich die Karten?
+- Repository: https://github.com/irmscher123/linz-linien-card  
+- Empfohlener Pfad (Beispiel): `dashboard-cards/linz-monitor-combined.js`  
+- Raw‑Link (Beispiel): `https://raw.githubusercontent.com/irmscher123/linz-linien-card/main/dashboard-cards/linz-monitor-combined.js`
+
+Installationsmöglichkeiten für die Dashboard‑Karten
+- Option 1 — HACS (empfohlen für Nutzer):  
+  - Fügen Sie das UI‑Repo als Custom Repository in HACS hinzu: `https://github.com/irmscher123/linz-linien-card` (Kategorie: Lovelace / Frontend).  
+  - Installieren Sie die Karte via HACS → Frontend. HACS fügt meist automatisch die Ressource hinzu.  
+- Option 2 — Manuell (Download Raw):  
+  - Laden Sie `linz-monitor-combined.js` aus `https://raw.githubusercontent.com/irmscher123/linz-linien-card/main/dashboard-cards/linz-monitor-combined.js` herunter.  
+  - Speichern Sie die Datei in `/config/www/` Ihrer Home Assistant‑Installation.  
+  - In Lovelace → Einstellungen → Dashboards → Ressourcen → Ressource hinzufügen: URL `/local/linz-monitor-combined.js`, Typ: JavaScript Module.  
+- Option 3 — Git Submodule (für Maintainer):  
+  - Wenn Sie möchten, können Sie das UI‑Repo als Submodule in dieses Repo einbinden:
+    ```bash
+    git submodule add https://github.com/irmscher123/linz-linien-card dashboard-cards
+    git commit -m "Add dashboard-cards submodule"
+    ```
+  - Vorteil: hält UI‑Code synchron, erspart manuellen Download.
+
+Migration (wenn vorher separate V1/V2/V3 lokal genutzt wurden)
+1. Entfernen Sie alte Ressourcen in Lovelace:
+   - `/local/linz-monitor-card_v1.js`  
+   - `/local/linz-monitor-card_v2.js`  
+   - `/local/linz-monitor-card_v3.js`
+2. Installieren Sie stattdessen die kombinierte Datei `linz-monitor-combined.js` (siehe oben).  
+3. Optional: Alte Dateien archivieren in `deprecated/` (im Repo oder `/config/www/deprecated/`) — nicht parallel laden.
 
 ---
 
@@ -38,34 +82,15 @@ Ab Version 0.3a sind die bisherigen drei separaten Dashboard‑Skripte (linz-mon
 
 | Design V1 (Maxi) | Design V2 (Midi) | Design V3 (Mini) |
 | :---: | :---: | :---: |
-| ![v1 Preview](pictures/v1.png) | ![v2 Preview](pictures/v2.png) | ![v3 Preview](pictures/v3.png) |
+| ![v1 Preview](https://raw.githubusercontent.com/irmscher123/linz-linien-card/main/pictures/v1.png) | ![v2 Preview](https://raw.githubusercontent.com/irmscher123/linz-linien-card/main/pictures/v2.png) | ![v3 Preview](https://raw.githubusercontent.com/irmscher123/linz-linien-card/main/pictures/v3.png) |
 
 ---
 
-## 📥 Installation
+## ⚙️ Verwendung & Konfiguration (Beispiele)
 
-### Option A — Über HACS (Empfohlen)
-1. Repository in HACS als Custom Repository hinzufügen:
-   - URL: `https://github.com/irmscher123/linz-linien-abfahrtsmonitor`
-   - Kategorie: `Lovelace`
-2. In HACS → Frontend suchen Sie die Karte und installieren Sie sie.
-3. Starten Sie Home Assistant neu.
-4. Die Ressource wird automatisch registriert (falls HACS dies nicht automatisch macht: siehe manueller Schritt unten).
+Eine Karte, drei Varianten — wählen Sie per `version`, welche Variante dargestellt wird.
 
-### Option B — Manuell
-1. Datei `linz-monitor-combined.js` in `/config/www/` hochladen.
-2. Lovelace → Einstellungen → Dashboards → Ressourcen → Ressource hinzufügen:
-   - URL: `/local/linz-monitor-combined.js`
-   - Typ: JavaScript Module
-3. Lovelace Cache leeren (Strg+F5) / Home Assistant neu starten.
-
----
-
-## ⚙️ Verwendung & Konfiguration
-
-Eine Karte, drei Varianten — wählen Sie per `version` welche Variante dargestellt wird. Alle Varianten nutzen dieselbe Resource.
-
-Beispiel (v2 = Midi):
+Beispiel — Midi (v2):
 ```yaml
 type: custom:linz-monitor-card
 version: v2

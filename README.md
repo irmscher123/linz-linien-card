@@ -60,7 +60,7 @@ Minimal (V2 Beispiel):
 type: custom:linz-monitor-card
 version: v2
 v2:
-  entity: sensor.linz_ag_monitor
+  entity: sensor.haltestelle
   anzahl: 8
   row_height: 38
   font_size: 20

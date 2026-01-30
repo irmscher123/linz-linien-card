@@ -57,7 +57,7 @@ Installationsmöglichkeiten für die Dashboard‑Karten
   - Fügen Sie das UI‑Repo als Custom Repository in HACS hinzu: `https://github.com/irmscher123/linz-linien-card` (Kategorie: Lovelace / Frontend).  
   - Installieren Sie die Karte via HACS → Frontend. HACS fügt meist automatisch die Ressource hinzu.  
 - Option 2 — Manuell (Download Raw):  
-  - Laden Sie `linz-monitor-combined.js` aus `https://raw.githubusercontent.com/irmscher123/linz-linien-card/main/dashboard-cards/linz-monitor-combined.js` herunter.  
+  - Laden Sie `linz-monitor-combined.js` aus `https://raw.githubusercontent.com/irmscher123/linz-linien-card/main/linz-monitor-combined.js` herunter.  
   - Speichern Sie die Datei in `/config/www/` Ihrer Home Assistant‑Installation.  
   - In Lovelace → Einstellungen → Dashboards → Ressourcen → Ressource hinzufügen: URL `/local/linz-monitor-combined.js`, Typ: JavaScript Module.  
 - Option 3 — Git Submodule (für Maintainer):  
@@ -95,7 +95,7 @@ Beispiel — Midi (v2):
 type: custom:linz-monitor-card
 version: v2
 v2:
-  entity: sensor.linz_ag_monitor
+  entity: sensor.haltestelle
   anzahl: 8
   row_height: 38
   font_size: 20

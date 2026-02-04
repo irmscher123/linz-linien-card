@@ -1,5 +1,6 @@
 /* ---------------------------------------------------------
    LinzAG Monitor – COMBINED (Maxi, Midi, Mini)
+   (Updated: Ferihumerstraße Logic & V3.17 Smart Combine)
    --------------------------------------------------------- */
 
 const LINE_COLORS = { 
@@ -327,7 +328,7 @@ class LinzMonitorCombined extends HTMLElement {
       let lineT = d.line;
       if (!isStandard && STANDARD_ROUTES[cleanL]) {
         const dest = d.direction.toLowerCase();
-        if ((cleanL === "3" || cleanL === "3a") && (dest.includes("neue welt") || dest.includes("remise kleinmünchen"))) lineT = cleanL + "a";
+        if ((cleanL === "3" || cleanL === "3a") && (dest.includes("neue welt") || dest.includes("ferihumerstraße") || dest.includes("remise kleinmünchen"))) lineT = cleanL + "a";
         else lineT = cleanL + "*";
       }
 
@@ -486,7 +487,7 @@ class LinzMonitorCombined extends HTMLElement {
       let lineT = d.line;
       if (!isStandard && STANDARD_ROUTES[cleanL]) {
         const dest = d.direction.toLowerCase();
-        if ((cleanL === "3" || cleanL === "3a") && (dest.includes("neue welt") || dest.includes("remise kleinmünchen"))) lineT = cleanL + "a";
+        if ((cleanL === "3" || cleanL === "3a") && (dest.includes("neue welt") || dest.includes("ferihumerstraße") || dest.includes("remise kleinmünchen"))) lineT = cleanL + "a";
         else lineT = cleanL + "*";
       }
 
@@ -563,7 +564,7 @@ class LinzMonitorCombined extends HTMLElement {
   }
 
   /* ----------------------------------------------------------------------------------
-     RENDER: MINI (V3 Codebase)
+     RENDER: MINI (V3 Codebase - SMART COMBINE)
      ---------------------------------------------------------------------------------- */
   _renderMini(state, departures) {
     const ROW_H = this._config.row_height || 32;
@@ -637,7 +638,7 @@ class LinzMonitorCombined extends HTMLElement {
       let lineT = d.line;
       if (!isStandard && STANDARD_ROUTES[cleanL]) {
         const dest = d.direction.toLowerCase();
-        if ((cleanL === "3" || cleanL === "3a") && (dest.includes("neue welt") || dest.includes("remise kleinmünchen"))) lineT = cleanL + "a";
+        if ((cleanL === "3" || cleanL === "3a") && (dest.includes("neue welt") || dest.includes("ferihumerstraße") || dest.includes("remise kleinmünchen"))) lineT = cleanL + "a";
         else lineT = cleanL + "*";
       }
 
@@ -648,11 +649,7 @@ class LinzMonitorCombined extends HTMLElement {
         list.appendChild(row);
         row._state = 'dest'; row._next = Date.now() + 10000;
       }
-
-      if (d.isGone) row.className = 'is-gone';
-      else if (isCancelled) row.className = 'is-cancelled';
-      else row.className = '';
-
+      row.className = d.isGone ? 'is-gone' : (isCancelled ? 'is-cancelled' : '');
       const b = row.querySelector(".badge");
       if(b.innerText !== lineT) b.innerText = lineT;
       b.style.background = LINE_COLORS[cleanL] || "#444";
@@ -668,7 +665,13 @@ class LinzMonitorCombined extends HTMLElement {
       else timeCol.innerHTML = `${delayText}${d.countdown}`;
 
       const destEl = row.querySelector(".dest-text");
-      if(destEl.innerText !== d.direction) destEl.innerText = d.direction;
+      
+      // SMART COMBINE LOGIC (Mini Only)
+      let finalDestText = d.direction;
+      if (isCancelled) {
+          finalDestText = `${d.direction} ⚠️ FÄLLT AUS`;
+      }
+      if(destEl.innerText !== finalDestText) destEl.innerText = finalDestText;
       destEl.style.fontSize = `${DEST_S}px`;
 
       // Auto-Scroll
@@ -683,20 +686,15 @@ class LinzMonitorCombined extends HTMLElement {
          }
       }
 
-      // LAUFTEXT (Mini)
+      // LAUFTEXT (NUR BEI NORMALER INFO, STORNO WIRD COMBINED)
       const overlay = row.querySelector(".info-overlay");
       const marquee = row.querySelector(".marquee-text");
       const wrap = row.querySelector(".marquee-wrap");
       const hideDest = (shouldHide) => { destEl.style.opacity = shouldHide ? "0" : "1"; };
 
       if (isCancelled) {
-        if (marquee.innerText !== "FAHRT FÄLLT AUS") { marquee.innerText = "FAHRT FÄLLT AUS"; marquee.className = "marquee-text alert-style"; }
-        if (Date.now() > row._next) {
-          row._state = (row._state === 'dest') ? 'warn' : 'dest';
-          row._next = Date.now() + 5000;
-          if (row._state === 'warn') { overlay.classList.add("visible"); wrap.classList.add("animating"); hideDest(true); }
-          else { overlay.classList.remove("visible"); wrap.classList.remove("animating"); hideDest(false); }
-        }
+         overlay.classList.remove("visible");
+         hideDest(false); 
       } else if (d.infos && d.infos.length > 5 && !isNow && !d.isGone) {
         const infoText = d.infos.replace(/\n/g, " ").replace("Niederflurfahrzeug", "").trim();
         if (marquee.innerText !== infoText) { marquee.innerText = infoText; marquee.className = "marquee-text"; }

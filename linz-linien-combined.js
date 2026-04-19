@@ -279,7 +279,7 @@ class LinzMonitorCombined extends HTMLElement {
         </style>
         <ha-card>
           <div class="header-box">
-            <img class="stop-logo" src="https://www.irmscher.at/linzag/logos/Haltestelle-Logo.pngg">
+            <img class="stop-logo" src="https://www.irmscher.at/linzag/logos/Haltestelle-Logo.png">
             <div class="stop-title"></div>
           </div>
           <div class="rows-container"></div>

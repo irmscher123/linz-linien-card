@@ -253,14 +253,14 @@ class LinzMonitorIrmscherEditorV11 extends HTMLElement {
 }
 
 // Registry für den V11 Editor (Zwingt HA, den Cache zu ignorieren)
-if (!customElements.get("linz-monitor-irmscher-editor-v11")) {
-  customElements.define("linz-monitor-irmscher-editor-v11", LinzMonitorIrmscherEditorV11);
+if (!customElements.get("linz-monitor-combined-editor-v11")) {
+  customElements.define("linz-monitor-combined-editor-v11", LinzMonitorIrmscherEditorV11);
 }
 
 
 /* --- MAIN CARD --- */
 class LinzMonitorCombined extends HTMLElement {
-  static getConfigElement() { return document.createElement("linz-monitor-irmscher-editor-v11"); }
+  static getConfigElement() { return document.createElement("linz-monitor-combined-editor-v11"); }
   static getStubConfig() { return { entity: "", layout: "led", anzahl: 7 }; }
 
   constructor() { 
@@ -1128,14 +1128,14 @@ class LinzMonitorCombined extends HTMLElement {
   getCardSize() { return (this._config.anzahl || 7) + 1; }
 }
 
-if (!customElements.get("linz-monitor-irmscher")) {
-  customElements.define("linz-monitor-irmscher", LinzMonitorCombined);
+if (!customElements.get("linz-monitor-combined")) {
+  customElements.define("linz-monitor-combined", LinzMonitorCombined);
 }
 
 window.customCards = window.customCards || [];
 window.customCards.push({
-  type: "linz-monitor-irmscher",
-  name: "Linz AG Monitor (Irmscher)",
+  type: "linz-monitor-combined",
+  name: "LinzAG Linien Monitor",
   description: "Maxi, Midi, Mini und LED Wall in einer Karte.",
   preview: true
 });

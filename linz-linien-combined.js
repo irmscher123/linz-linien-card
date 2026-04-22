@@ -169,7 +169,7 @@ class LinzMonitorIrmscherEditorV11 extends HTMLElement {
       </style>
 
       <div class="irmscher-editor">
-         <h3>⚙️ LinzAG Monitor (Irmscher)</h3>
+         <h3>⚙️ LinzAG Monitor (Einstellungen)</h3>
          
          <div class="form-row">
            <label>📌 Haltestelle (Sensor auswählen)</label>

@@ -1,5 +1,5 @@
 /* ---------------------------------------------------------
-   LinzAG Monitor – ULTIMATE COMBINED (Maxi, Midi, Mini, LED)
+   LinzAG Monitor – ULTIMATE COMBINED (Maxi, Midi, Mini, LED Wall)
    (Features: Dynamic Filters, Orange LED (#FF9900), Direction Filter, Skyfont)
    --------------------------------------------------------- */
 

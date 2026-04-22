@@ -1,6 +1,6 @@
 /* ---------------------------------------------------------
-   LinzAG Monitor – COMBINED (Maxi, Midi, Mini)
-   (Updated: Ferihumerstraße Logic & V3.17 Smart Combine)
+   LinzAG Monitor – ULTIMATE COMBINED (Maxi, Midi, Mini, LED)
+   (Features: Dynamic Filters, Orange LED (#FF9900), Direction Filter, Skyfont)
    --------------------------------------------------------- */
 
 const LINE_COLORS = { 
@@ -31,9 +31,9 @@ const STANDARD_ROUTES = {
   '108': ['Simonystraße', 'Lunzerstraße Ost']
 };
 
-/* --- GOOGLE FONT LOADER --- */
+/* --- FONT LOADER --- */
 const loadGoogleFont = (fontName) => {
-  if (!fontName || ['Arial','Verdana','Helvetica','sans-serif','serif','monospace'].includes(fontName)) return;
+  if (!fontName || ['Skyfont', 'Arial','Verdana','Helvetica','sans-serif','serif','monospace'].includes(fontName)) return;
   const id = `font-comb-${fontName.replace(/\s+/g, '-').toLowerCase()}`;
   if (document.getElementById(id)) return;
   const link = document.createElement('link');
@@ -42,8 +42,8 @@ const loadGoogleFont = (fontName) => {
   document.head.appendChild(link);
 };
 
-/* --- EDITOR --- */
-class LinzMonitorCombinedEditor extends HTMLElement {
+/* --- DYNAMISCHER EDITOR (CACHE-BYPASS V11) --- */
+class LinzMonitorIrmscherEditorV11 extends HTMLElement {
   setConfig(config) { this._config = config; this.render(); }
   set hass(hass) { this._hass = hass; if (!this._initialized) { this.render(); this._initialized = true; } }
 
@@ -51,79 +51,192 @@ class LinzMonitorCombinedEditor extends HTMLElement {
     if (!this._hass || !this._config) return;
     const entities = Object.keys(this._hass.states).filter(k => k.includes('linz_ag') || this._hass.states[k].attributes?.departureList).sort();
     
-    const mode = this._config.layout || "maxi"; // maxi, midi, mini
+    const mode = this._config.layout || "maxi"; 
 
-    // Gemeinsame Optionen
-    let commonHtml = `
-      <div style="margin-bottom:10px;"><label style="font-weight:bold; display:block;">Design Mode</label>
-        <select id="layout" style="width:100%; padding:8px; background:#222; color:white; border:1px solid #444; border-radius:4px;">
-          <option value="maxi" ${mode === 'maxi' ? 'selected' : ''}>Maxi (Classic)</option>
-          <option value="midi" ${mode === 'midi' ? 'selected' : ''}>Midi (Compact)</option>
-          <option value="mini" ${mode === 'mini' ? 'selected' : ''}>Mini (Minimal)</option>
-        </select>
-      </div>
-      <div style="margin-bottom:10px;"><label style="font-weight:bold; display:block;">Haltestelle</label>
-        <select id="entity" style="width:100%; padding:8px; background:#222; color:white; border:1px solid #444; border-radius:4px;">
-          <option value="">Wählen...</option>
-          ${entities.map(e => `<option value="${e}" ${this._config.entity === e ? 'selected' : ''}>${e}</option>`).join('')}
-        </select>
-      </div>
-      <div style="margin-bottom:10px;"><label style="font-weight:bold; display:block;">Name (Optional)</label>
-        <input id="stop_name_override" type="text" value="${this._config.stop_name_override || ''}" placeholder="Eigener Name..." style="width:100%; padding:8px; background:#222; color:white; border:1px solid #444; border-radius:4px;">
-      </div>
-    `;
+    // Dynamische Filter Analyse
+    let dynamicFilterHtml = "";
+    if (this._config.entity && this._hass.states[this._config.entity]) {
+       const state = this._hass.states[this._config.entity];
+       const deps = state.attributes.departureList || [];
+       
+       const lines = [...new Set(deps.map(d => d.line.replace('*','')))].sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
+       const dirs = [...new Set(deps.map(d => d.direction))].sort();
 
-    // Spezifische Optionen
+       const activeLines = (this._config.filter || "").split(',').map(s=>s.trim()).filter(Boolean);
+       const activeDirs = (this._config.filter_direction || "").split(',').map(s=>s.trim()).filter(Boolean);
+
+       dynamicFilterHtml = `
+         <div class="filter-box">
+           <h4>🚦 Intelligente Filter (Autom. erkannt)</h4>
+           
+           <div class="mb-15">
+             <strong class="filter-title">Linienauswahl (Klicken zum Filtern):</strong>
+             <div class="chip-container">
+               ${lines.length > 0 ? lines.map(l => `
+                 <label class="chip ${activeLines.includes(l) ? 'active-line' : ''}">
+                   <input type="checkbox" class="dyn-filter-line" value="${l}" ${activeLines.includes(l) ? 'checked' : ''} style="display:none;">
+                   Linie ${l}
+                 </label>
+               `).join('') : '<span class="empty-hint">Keine Linien in Echtzeit gefunden.</span>'}
+             </div>
+           </div>
+
+           <div>
+             <strong class="filter-title">Richtungsauswahl (Klicken zum Filtern):</strong>
+             <div class="chip-container">
+               ${dirs.length > 0 ? dirs.map(d => `
+                 <label class="chip ${activeDirs.includes(d) ? 'active-dir' : ''}">
+                   <input type="checkbox" class="dyn-filter-dir" value="${d}" ${activeDirs.includes(d) ? 'checked' : ''} style="display:none;">
+                   ${d}
+                 </label>
+               `).join('') : '<span class="empty-hint">Keine Richtungen in Echtzeit gefunden.</span>'}
+             </div>
+             <div class="hint-text">*Wenn nichts markiert ist, werden alle angezeigt.</div>
+           </div>
+         </div>
+       `;
+    }
+
     let specificHtml = "";
-
     if (mode === "maxi") {
       specificHtml = `
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
-          <label style="display:flex; align-items:center; gap:8px; background:#1a1a1a; border:1px solid #333; padding:10px; border-radius:6px; cursor:pointer;"><input id="show_info" type="checkbox" ${this._config.show_info !== false ? 'checked' : ''} style="transform:scale(1.2);"><span style="font-weight:700;">Info-Zeile</span></label>
-          <label style="display:flex; align-items:center; gap:8px; background:#1a1a1a; border:1px solid #333; padding:10px; border-radius:6px; cursor:pointer;"><input id="badge_round" type="checkbox" ${this._config.badge_round !== false ? 'checked' : ''} style="transform:scale(1.2);"><span style="font-weight:700;">Badges rund</span></label>
+        <div class="grid-2">
+          <label class="toggle-box"><input id="show_info" class="std-input" type="checkbox" ${this._config.show_info !== false ? 'checked' : ''}><span>Info-Zeile anzeigen</span></label>
+          <label class="toggle-box"><input id="badge_round" class="std-input" type="checkbox" ${this._config.badge_round !== false ? 'checked' : ''}><span>Badges rund</span></label>
         </div>
+        <div class="form-row"><label>Schriftart (Tippe 'Skyfont' für deine Eigene)</label><input id="font_family" class="std-input" type="text" value="${this._config.font_family || ''}" placeholder="Standard: Exo 2"></div>
       `;
     } else if (mode === "midi") {
        specificHtml = `
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
-          <div><label style="font-weight:bold; display:block;">Zeilenhöhe</label><input id="row_height" type="number" value="${this._config.row_height || 38}" style="width:100%; padding:8px; background:#222; color:white; border:1px solid #444; border-radius:4px;"></div>
-          <div><label style="font-weight:bold; display:block;">Schrift Zeit</label><input id="font_size" type="number" value="${this._config.font_size || 20}" style="width:100%; padding:8px; background:#222; color:white; border:1px solid #444; border-radius:4px;"></div>
+        <div class="grid-2">
+          <div><label>Zeilenhöhe</label><input id="row_height" class="std-input" type="number" value="${this._config.row_height || 38}"></div>
+          <div><label>Schrift Zeit</label><input id="font_size" class="std-input" type="number" value="${this._config.font_size || 20}"></div>
         </div>
-        <div style="margin-bottom:10px;"><label style="font-weight:bold; display:block;">Schrift Ziel</label><input id="dest_size" type="number" value="${this._config.dest_size || 20}" style="width:100%; padding:8px; background:#222; color:white; border:1px solid #444; border-radius:4px;"></div>
+        <div class="form-row"><label>Schrift Ziel</label><input id="dest_size" class="std-input" type="number" value="${this._config.dest_size || 20}"></div>
+        <div class="form-row"><label>Schriftart (Tippe 'Skyfont' für deine Eigene)</label><input id="font_family" class="std-input" type="text" value="${this._config.font_family || ''}" placeholder="Standard: Exo 2"></div>
        `;
     } else if (mode === "mini") {
        specificHtml = `
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px; background:#333; padding:8px; border-radius:4px;">
-           <div><label style="font-weight:bold; display:block;">Badge Größe (px)</label><input id="badge_size" type="number" value="${this._config.badge_size || 24}" style="width:100%; padding:8px; background:#222; color:white; border:1px solid #444; border-radius:4px;"></div>
-           <div style="display:flex; align-items:flex-end;"><label style="display:flex; align-items:center; gap:8px; cursor:pointer;"><input id="badge_round" type="checkbox" ${this._config.badge_round !== false ? 'checked' : ''} style="transform:scale(1.2);"><span style="font-weight:700;">Kreis / Rund</span></label></div>
+        <div class="grid-2 toggle-box-dark">
+           <div><label>Badge Größe (px)</label><input id="badge_size" class="std-input" type="number" value="${this._config.badge_size || 24}"></div>
+           <div style="display:flex; align-items:flex-end;"><label class="toggle-box" style="border:none; padding:0; background:transparent;"><input id="badge_round" class="std-input" type="checkbox" ${this._config.badge_round !== false ? 'checked' : ''}><span>Kreis / Rund</span></label></div>
         </div>
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
-          <div><label style="font-weight:bold; display:block;">Zeilenhöhe</label><input id="row_height" type="number" value="${this._config.row_height || 32}" style="width:100%; padding:8px; background:#222; color:white; border:1px solid #444; border-radius:4px;"></div>
-          <div><label style="font-weight:bold; display:block;">Schrift Zeit</label><input id="font_size" type="number" value="${this._config.font_size || 14}" style="width:100%; padding:8px; background:#222; color:white; border:1px solid #444; border-radius:4px;"></div>
+        <div class="grid-2">
+          <div><label>Zeilenhöhe</label><input id="row_height" class="std-input" type="number" value="${this._config.row_height || 32}"></div>
+          <div><label>Schrift Zeit</label><input id="font_size" class="std-input" type="number" value="${this._config.font_size || 14}"></div>
         </div>
-        <div style="margin-bottom:10px;"><label style="font-weight:bold; display:block;">Schrift Ziel</label><input id="dest_size" type="number" value="${this._config.dest_size || 14}" style="width:100%; padding:8px; background:#222; color:white; border:1px solid #444; border-radius:4px;"></div>
+        <div class="form-row"><label>Schrift Ziel</label><input id="dest_size" class="std-input" type="number" value="${this._config.dest_size || 14}"></div>
+        <div class="form-row"><label>Schriftart</label><input id="font_family" class="std-input" type="text" value="${this._config.font_family || ''}" placeholder="Standard: Exo 2"></div>
+       `;
+    } else if (mode === "led") {
+       specificHtml = `
+        <div class="form-row">
+           <label>💡 LED Farbe (Hexadezimal)</label>
+           <input id="led_color" class="std-input" type="text" value="${this._config.led_color || '#FF9900'}" placeholder="Standard: #FF9900 (Orange)">
+        </div>
        `;
     }
 
     this.innerHTML = `
-      <div class="card-config" style="padding:10px;">
-        ${commonHtml}
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
-          <div><label style="font-weight:bold; display:block;">Filter (Linien)</label><input id="filter" type="text" value="${this._config.filter || ''}" placeholder="z.B. 1, 2" style="width:100%; padding:8px; background:#222; color:white; border:1px solid #444; border-radius:4px;"></div>
-          <div><label style="font-weight:bold; display:block;">Sortierung</label>
-            <select id="sortierung" style="width:100%; padding:8px; background:#222; color:white; border:1px solid #444; border-radius:4px;">
-              <option value="echtzeit" ${this._config.sortierung === "echtzeit" ? 'selected' : ''}>Echtzeit</option>
-              <option value="plan" ${this._config.sortierung === "plan" ? 'selected' : ''}>Plan</option>
-            </select>
-          </div>
-        </div>
-        <div style="margin-bottom:10px;"><label style="font-weight:bold; display:block;">Anzahl Zeilen</label><input id="anzahl" type="number" value="${this._config.anzahl || 7}" style="width:100%; padding:8px; background:#222; color:white; border:1px solid #444; border-radius:4px;"></div>
-        ${specificHtml}
-        <div style="margin-bottom:10px;"><label style="font-weight:bold; display:block;">Google Font (Name)</label><input id="font_family" type="text" value="${this._config.font_family || ''}" placeholder="z.B. Oswald, Roboto..." style="width:100%; padding:8px; background:#222; color:white; border:1px solid #444; border-radius:4px;"></div>
+      <style>
+        .irmscher-editor { padding: 15px; background: #1e1e1e; color: #e1e1e1; border-radius: 8px; font-family: sans-serif; border: 1px solid #333; box-sizing: border-box; width: 100%; }
+        .irmscher-editor * { box-sizing: border-box; }
+        .irmscher-editor h3 { margin: 0 0 15px 0; color: #fff; border-bottom: 1px solid #444; padding-bottom: 8px; }
+        .irmscher-editor h4 { margin: 20px 0 10px 0; color: #aaa; border-bottom: 1px solid #333; padding-bottom: 4px; }
+        .form-row { margin-bottom: 15px; width: 100%; }
+        .form-row label { display: block; font-weight: bold; margin-bottom: 5px; }
+        .std-input { width: 100%; padding: 8px; background: #333; color: white; border: 1px solid #555; border-radius: 4px; outline: none; transition: border-color 0.3s; }
+        .std-input:focus { border-color: #FF9900; }
+        .grid-2 { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 15px; }
+        @media (min-width: 400px) { .grid-2 { grid-template-columns: 1fr 1fr; } }
+        
+        .filter-box { margin-top: 15px; background: #222; padding: 15px; border-radius: 6px; border: 1px solid #444; }
+        .filter-box h4 { margin: 0 0 10px 0; color: #FF9900; border: none; padding: 0; }
+        .filter-title { display: block; margin-bottom: 5px; color: #bbb; }
+        .chip-container { display: flex; flex-wrap: wrap; gap: 8px; }
+        .chip { background: #444; color: white; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.2s; user-select: none; }
+        .chip:hover { background: #555; }
+        .active-line { background: #4caf50 !important; }
+        .active-dir { background: #2196f3 !important; }
+        .empty-hint { color: #777; font-style: italic; }
+        .hint-text { width: 100%; font-size: 12px; color: #aaa; margin-top: 8px; }
+        
+        .toggle-box { display: flex; align-items: center; gap: 8px; background: #333; border: 1px solid #555; padding: 10px; border-radius: 6px; cursor: pointer; }
+        .toggle-box input { transform: scale(1.2); margin: 0; }
+        .toggle-box span { font-weight: 700; }
+        .toggle-box-dark { background: #333; padding: 8px; border-radius: 4px; }
+        .mb-15 { margin-bottom: 15px; }
+      </style>
+
+      <div class="irmscher-editor">
+         <h3>⚙️ LinzAG Monitor (Irmscher)</h3>
+         
+         <div class="form-row">
+           <label>📌 Haltestelle (Sensor auswählen)</label>
+           <select id="entity" class="std-input">
+             <option value="">Wählen...</option>
+             ${entities.map(e => `<option value="${e}" ${this._config.entity === e ? 'selected' : ''}>${e}</option>`).join('')}
+           </select>
+         </div>
+
+         <div class="grid-2">
+           <div>
+              <label>🎨 Layout</label>
+              <select id="layout" class="std-input">
+                <option value="maxi" ${mode === 'maxi' ? 'selected' : ''}>Maxi (Classic)</option>
+                <option value="midi" ${mode === 'midi' ? 'selected' : ''}>Midi (Compact)</option>
+                <option value="mini" ${mode === 'mini' ? 'selected' : ''}>Mini (Minimal)</option>
+                <option value="led" ${mode === 'led' ? 'selected' : ''}>LED Wall (Matrix)</option>
+              </select>
+           </div>
+           <div>
+              <label>🏷️ Eigener Name (Titel)</label>
+              <input id="stop_name_override" class="std-input" type="text" value="${this._config.stop_name_override || ''}" placeholder="Wird statt Originalname angezeigt">
+           </div>
+         </div>
+
+         ${dynamicFilterHtml}
+
+         <input type="hidden" id="filter" class="std-input" value="${this._config.filter || ''}">
+         <input type="hidden" id="filter_direction" class="std-input" value="${this._config.filter_direction || ''}">
+
+         <div class="grid-2" style="margin-top: 20px;">
+           <div>
+             <label>Anzahl der Zeilen</label>
+             <input id="anzahl" class="std-input" type="number" value="${this._config.anzahl || 7}">
+           </div>
+           <div>
+             <label>Sortierung</label>
+             <select id="sortierung" class="std-input">
+               <option value="echtzeit" ${this._config.sortierung === "echtzeit" ? 'selected' : ''}>Nach Echtzeit (inkl. Verspätung)</option>
+               <option value="plan" ${this._config.sortierung === "plan" ? 'selected' : ''}>Nach Fahrplan</option>
+             </select>
+           </div>
+         </div>
+
+         <h4>🛠️ Design Einstellungen (${mode.toUpperCase()})</h4>
+         ${specificHtml}
       </div>
     `;
 
-    this.querySelectorAll("select, input").forEach(el => el.addEventListener("change", (ev) => this._update(ev)));
+    // Event Listener für Standard-Inputs
+    this.querySelectorAll(".std-input").forEach(el => el.addEventListener("change", (ev) => this._update(ev)));
+    
+    // Event Listener für Dynamische Filter (Linien)
+    this.querySelectorAll('.dyn-filter-line').forEach(cb => {
+      cb.addEventListener('change', () => {
+        const checked = Array.from(this.querySelectorAll('.dyn-filter-line:checked')).map(el => el.value);
+        this._updateDirect('filter', checked.join(', '));
+      });
+    });
+
+    // Event Listener für Dynamische Filter (Richtungen)
+    this.querySelectorAll('.dyn-filter-dir').forEach(cb => {
+      cb.addEventListener('change', () => {
+        const checked = Array.from(this.querySelectorAll('.dyn-filter-dir:checked')).map(el => el.value);
+        this._updateDirect('filter_direction', checked.join(', '));
+      });
+    });
   }
 
   _update(ev) {
@@ -132,15 +245,40 @@ class LinzMonitorCombinedEditor extends HTMLElement {
     const config = { ...this._config, [t.id]: value };
     this.dispatchEvent(new CustomEvent("config-changed", { detail: { config }, bubbles: true, composed: true }));
   }
+
+  _updateDirect(key, value) {
+    const config = { ...this._config, [key]: value };
+    this.dispatchEvent(new CustomEvent("config-changed", { detail: { config }, bubbles: true, composed: true }));
+  }
 }
-customElements.define("linz-monitor-combined-editor", LinzMonitorCombinedEditor);
+
+// Registry für den V11 Editor (Zwingt HA, den Cache zu ignorieren)
+if (!customElements.get("linz-monitor-irmscher-editor-v11")) {
+  customElements.define("linz-monitor-irmscher-editor-v11", LinzMonitorIrmscherEditorV11);
+}
+
 
 /* --- MAIN CARD --- */
 class LinzMonitorCombined extends HTMLElement {
-  static getConfigElement() { return document.createElement("linz-monitor-combined-editor"); }
-  static getStubConfig() { return { entity: "", layout: "maxi", anzahl: 7 }; }
+  static getConfigElement() { return document.createElement("linz-monitor-irmscher-editor-v11"); }
+  static getStubConfig() { return { entity: "", layout: "led", anzahl: 7 }; }
 
-  constructor() { super(); this._gone_mem = new Map(); }
+  constructor() { 
+    super(); 
+    this._gone_mem = new Map(); 
+    this._clockTimer = null; 
+    this._animTimers = new Map(); 
+  }
+
+  connectedCallback() {
+    this._clockTimer = setInterval(() => this._updateClockDisplay(), 1000);
+  }
+  
+  disconnectedCallback() {
+    if (this._clockTimer) clearInterval(this._clockTimer);
+    this._animTimers.forEach(t => clearTimeout(t));
+    this._animTimers.clear();
+  }
 
   setConfig(config) {
     this._config = { 
@@ -148,26 +286,31 @@ class LinzMonitorCombined extends HTMLElement {
       anzahl: 7, 
       sortierung: "echtzeit", 
       filter: "", 
+      filter_direction: "",
       stop_name_override: "",
       font_family: "",
-      // Maxi Defaults
+      led_color: "#FF9900", // Standard jetzt ORANGE (#FF9900)
       show_info: true, 
       badge_round: true,
-      // Midi/Mini Defaults
       row_height: config.layout === "mini" ? 32 : 38,
       font_size: config.layout === "mini" ? 14 : 20,
       dest_size: config.layout === "mini" ? 14 : 20,
       badge_size: 24,
       ...config 
     };
-    if (this._config.font_family) loadGoogleFont(this._config.font_family);
+    
+    if (this._config.layout === 'led') {
+       loadGoogleFont("DotGothic16");
+    } else if (this._config.font_family) {
+       loadGoogleFont(this._config.font_family);
+    }
   }
 
   set hass(hass) {
     this._hass = hass;
     if (!this._config.entity || !hass.states[this._config.entity]) {
       if (!this.querySelector("ha-card")) {
-        this.innerHTML = `<ha-card style="padding:20px;color:white;background:var(--ha-card-background,var(--card-background-color,#1c1c1c));">Bitte Haltestelle wählen.</ha-card>`;
+        this.innerHTML = `<ha-card style="padding:20px;color:white;background:var(--ha-card-background,var(--card-background-color,#1c1c1c));">Bitte Haltestelle auswählen.</ha-card>`;
       }
       return;
     }
@@ -177,21 +320,30 @@ class LinzMonitorCombined extends HTMLElement {
     let departures = [...(state.attributes.departureList || [])];
 
     // 1. FILTER
-    const matchesFilter = (line) => {
+    const matchesLine = (line) => {
       if (!this._config.filter) return true;
       const filters = this._config.filter.split(',').map(f => f.trim().toLowerCase()).filter(Boolean);
       if (filters.length === 0) return true;
       const l = (line || "").toLowerCase();
       return filters.includes(l) || filters.includes(l.replace('*', ''));
     };
-    departures = departures.filter(d => matchesFilter(d.line));
 
-    // 2. MEMORY (für "gerade weg" Anzeige)
+    const matchesDirection = (dir) => {
+      if (!this._config.filter_direction) return true;
+      const filters = this._config.filter_direction.split(',').map(f => f.trim().toLowerCase()).filter(Boolean);
+      if (filters.length === 0) return true;
+      const d = (dir || "").toLowerCase();
+      return filters.some(f => d.includes(f));
+    };
+
+    departures = departures.filter(d => matchesLine(d.line) && matchesDirection(d.direction));
+
+    // 2. MEMORY
     const currentKeys = new Set(departures.map(d => `${d.line}-${d.scheduled}-${d.direction}`));
     if (this._lastRaw) {
       this._lastRaw.forEach(old => {
         const key = `${old.line}-${old.scheduled}-${old.direction}`;
-        if (matchesFilter(old.line) && !currentKeys.has(key) && old.countdown <= 1 && old.countdown >= 0 && !this._gone_mem.has(key)) {
+        if (matchesLine(old.line) && matchesDirection(old.direction) && !currentKeys.has(key) && old.countdown <= 1 && old.countdown >= 0 && !this._gone_mem.has(key)) {
           this._gone_mem.set(key, { ...old, goneAt: nowTs });
         }
       });
@@ -201,7 +353,7 @@ class LinzMonitorCombined extends HTMLElement {
     const combined = [...departures];
     this._gone_mem.forEach(val => combined.push({ ...val, isGone: true }));
 
-    // 3. SORTIERUNG (Unified Logic aus V1/V2/V3)
+    // 3. SORTIERUNG
     const getSortTime = (d) => {
       const [h, m] = d.scheduled.split(':').map(Number);
       const now = new Date();
@@ -215,30 +367,312 @@ class LinzMonitorCombined extends HTMLElement {
     };
     combined.sort((a, b) => getSortTime(a) - getSortTime(b));
 
-    // ROUTING ZUR RICHTIGEN RENDER METHODE
+    // ROUTING
     const layout = this._config.layout || "maxi";
     if (layout === "mini") {
         this._renderMini(state, combined);
     } else if (layout === "midi") {
         this._renderMidi(state, combined);
+    } else if (layout === "led") {
+        this._renderLed(state, combined);
     } else {
         this._renderMaxi(state, combined);
     }
   }
 
-  /* ----------------------------------------------------------------------------------
-     RENDER: MAXI (V1 Codebase)
-     ---------------------------------------------------------------------------------- */
+  _updateClockDisplay() {
+    const clock = this.querySelector("#clock");
+    if (!clock) return;
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('de-DE', {hour:'2-digit', minute:'2-digit'});
+    if(clock.innerText !== timeStr) clock.innerText = timeStr;
+  }
+
+  _startAnimationLoop(row, infoTextWidth) {
+    const rowId = row.dataset.rowId;
+    if (this._animTimers.has(rowId)) return; 
+
+    const run = () => {
+       const containerWidth = row.querySelector(".col-dest").offsetWidth || 300;
+       const distance = containerWidth + infoTextWidth;
+       const speed = 50; 
+       const durationSec = distance / speed;
+       
+       row.classList.add("mode-ticker");
+       const ticker = row.querySelector(".info-ticker");
+       ticker.style.transition = 'none'; 
+       ticker.style.transform = `translateX(${containerWidth}px)`; 
+       
+       void ticker.offsetWidth; 
+
+       ticker.style.transition = `transform ${durationSec}s linear`;
+       ticker.style.transform = `translateX(-${infoTextWidth}px)`;
+
+       const t1 = setTimeout(() => {
+          row.classList.remove("mode-ticker");
+          const t2 = setTimeout(() => {
+              this._animTimers.delete(rowId);
+              run(); 
+          }, 10000); 
+          
+          this._animTimers.set(rowId, t2);
+       }, durationSec * 1000);
+       
+       this._animTimers.set(rowId, t1);
+    };
+    run();
+  }
+
+  _getRouteName(d) {
+      const cleanL = d.line.replace("*", "");
+      const isStandard = STANDARD_ROUTES[cleanL]?.includes(d.direction);
+      if (!isStandard && STANDARD_ROUTES[cleanL]) {
+        const dest = d.direction.toLowerCase();
+        if ((cleanL === "3" || cleanL === "3a") && (dest.includes("neue welt") || dest.includes("ferihumerstraße") || dest.includes("remise kleinmünchen"))) {
+          return cleanL + "a";
+        } else if (cleanL === "33" && dest.includes("rudolfstraße")) {
+          return "33a"; 
+        } else {
+          return cleanL + "*";
+        }
+      }
+      return d.line;
+  }
+
+  /* ==================================================================================
+     RENDER: LED WALL
+     ================================================================================== */
+  _renderLed(state, departures) {
+    const LED_C = this._config.led_color || "#FF9900";
+    const LED_DIM = LED_C + "44"; 
+
+    if (!this.querySelector("ha-card") || this._currentLayout !== 'led') {
+      this._currentLayout = 'led';
+      this.innerHTML = `
+        <style>
+          @font-face { font-family: 'Skyfont'; src: url('/local/Skyfont-NonCommercial.otf') format('opentype'); }
+          ha-card {
+            background: #000000;
+            border: 6px solid #222;
+            border-radius: 4px !important;
+            padding: 10px !important;
+            color: ${LED_C} !important;
+            font-family: 'DotGothic16', sans-serif !important;
+            box-shadow: 0 0 15px rgba(0,0,0,1);
+            display: flex; flex-direction: column;
+            overflow: hidden !important;
+            letter-spacing: 0px; 
+            text-shadow: 0 0 5px ${LED_C}66;
+            height: 100%; width: 100%; box-sizing: border-box;
+          }
+          .header-row {
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 2px solid ${LED_DIM};
+            padding-bottom: 6px; margin-bottom: 6px;
+            height: 40px; flex-shrink: 0;
+          }
+          .h-symbol {
+            height: 34px; width: 34px;
+            background: #afca0b; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-family: sans-serif; font-weight: 900;
+            color: #005a31; font-size: 22px;
+            border: 2px solid #005a31; flex-shrink: 0;
+            box-shadow: 0 0 5px rgba(255,255,255,0.2);
+          }
+          .h-symbol::after { content: "H"; }
+          .stop-name { flex: 1; text-align: left; margin-left: 15px; font-size: 24px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: ${LED_C}; }
+          .clock { font-size: 24px; font-weight: bold; letter-spacing: 1px; display: flex; align-items: center; }
+
+          .matrix-table { width: 100%; display: flex; flex-direction: column; gap: 4px; flex: 1; min-height: 0; }
+          .matrix-row {
+            display: grid; 
+            grid-template-columns: 50px 1fr 85px; 
+            align-items: center;
+            font-size: 28px; 
+            line-height: 1.1;
+            border-bottom: 1px solid #111; 
+            padding: 2px 0; height: 38px;
+          }
+          .col-line { text-align: left; font-weight: bold; padding-left: 2px; }
+          
+          .col-dest { 
+            display: grid; grid-template-columns: 1fr; grid-template-rows: 1fr;
+            overflow: hidden; padding-right: 5px; height: 100%; align-items: center; position: relative;
+          }
+          .dest-static, .info-ticker { grid-column: 1; grid-row: 1; white-space: nowrap; }
+          .dest-static { color: #ffffff; text-shadow: 0 0 3px rgba(255,255,255,0.4); opacity: 1; width: 100%; overflow: hidden; transition: opacity 0.2s; }
+          .dest-inner { display: inline-block; transition: transform 0.1s; }
+          .ping-pong-scroll { animation: scroll-pingpong 6s linear infinite alternate; --scroll-dist: -50px; }
+          .info-ticker { color: ${LED_C}; opacity: 0; position: absolute; left: 0; }
+
+          .matrix-row.mode-ticker .dest-static { opacity: 0; }
+          .matrix-row.mode-ticker .info-ticker { opacity: 1; }
+
+          @keyframes scroll-pingpong { 0%, 20% { transform: translateX(0); } 80%, 100% { transform: translateX(var(--scroll-dist)); } }
+
+          .col-min { text-align: right; font-weight: bold; white-space: nowrap; display: flex; justify-content: flex-end; align-items: baseline;}
+          .min-small { font-size: 22px; margin-left: 2px; vertical-align: top; }
+          .delay-info { font-size: 18px; margin-right: 6px; font-weight: normal; color: ${LED_C}; opacity: 0.8; }
+          .is-gone { opacity: 0.5; }
+          .is-gone .col-min { text-decoration: line-through; }
+          .blink { animation: blinker 1s steps(1) infinite; }
+          @keyframes blinker { 50% { opacity: 0; } }
+          
+          @media (max-width: 450px) {
+            .matrix-row { font-size: 22px; grid-template-columns: 40px 1fr 65px; }
+            .stop-name { font-size: 18px; }
+            .clock { font-size: 18px; }
+            .h-symbol { height: 28px; width: 28px; font-size: 18px; }
+          }
+        </style>
+        <ha-card>
+          <div class="header-row">
+             <div class="h-symbol"></div>
+             <div class="stop-name" id="led-title"></div>
+             <div class="clock" id="clock">00:00</div>
+          </div>
+          <div class="matrix-table" id="board"></div>
+        </ha-card>
+      `;
+    }
+
+    const board = this.querySelector("#board");
+    this._updateClockDisplay();
+
+    const defaultName = (state.attributes.stop_name || "").replace(/Linz\/Donau|Leonding|Linz/gi, "").trim();
+    const finalName = this._config.stop_name_override || defaultName;
+    if(this.querySelector("#led-title").innerText !== finalName) this.querySelector("#led-title").innerText = finalName;
+
+    const visibleRows = departures.slice(0, this._config.anzahl);
+    let existingRows = Array.from(board.children);
+
+    const warningSvg = `<svg style="width:18px;height:18px;margin-bottom:-2px;margin-right:4px;" viewBox="0 0 24 24"><path fill="currentColor" d="M13,14H11V10H13M13,18H11V16H13M1,21H23L12,2L1,21Z" /></svg>`;
+
+    visibleRows.forEach((d, i) => {
+      const infoLow = (d.infos || "").toLowerCase();
+      const isCancelled = d.canceled || d.cancelled || infoLow.includes("fällt aus") || infoLow.includes("entfällt");
+      const isNow = d.countdown === 0 && !d.isGone && !isCancelled;
+      
+      let lineT = this._getRouteName(d); 
+
+      let infoText = "";
+      if (isCancelled) infoText = "FAHRT FÄLLT AUS";
+      else if (d.infos && d.infos.length > 3) {
+          let cleanInfo = d.infos.replace("Niederflurfahrzeug", "").replace(/\n/g, " ").trim();
+          if (cleanInfo.length > 2) infoText = cleanInfo;
+      }
+
+      let timeHtml = "";
+      let delayHtml = "";
+      if (!isCancelled && !d.isGone && d.delay > 0 && !isNow) delayHtml = `<span class="delay-info">+${d.delay}</span>`;
+      
+      // STRIKETHROUGH FÜR ZEIT
+      if (isCancelled) timeHtml = `<span style="text-decoration: line-through;">${d.scheduled}</span>`; 
+      else if (isNow) timeHtml = `0<span class='min-small'>'</span>`; 
+      else if (d.isGone) timeHtml = `${d.scheduled}`;
+      else if (d.countdown >= 45) timeHtml = d.scheduled;
+      else timeHtml = `${d.countdown}<span class='min-small'>'</span>`;
+      
+      const finalTimeContent = delayHtml + timeHtml;
+
+      let row = existingRows[i];
+      if (!row) {
+        row = document.createElement("div");
+        row.className = "matrix-row";
+        row.dataset.rowId = "row_" + i;
+        row.innerHTML = `
+          <div class="col-line"></div>
+          <div class="col-dest">
+             <div class="dest-static"><span class="dest-inner"></span></div>
+             <div class="info-ticker"><span class="ticker-inner"></span></div>
+          </div>
+          <div class="col-min"></div>
+        `;
+        board.appendChild(row);
+      }
+
+      const hasInfo = infoText !== "" && !isNow && !d.isGone;
+      
+      if(!hasInfo && this._animTimers.has(row.dataset.rowId)) {
+          clearTimeout(this._animTimers.get(row.dataset.rowId));
+          this._animTimers.delete(row.dataset.rowId);
+          row.classList.remove("mode-ticker");
+      }
+
+      const elLine = row.querySelector(".col-line");
+      const elDestInner = row.querySelector(".dest-inner");
+
+      // STRIKETHROUGH FÜR ZIEL & FARBE
+      if (isCancelled) {
+          row.style.color = "#ff4444"; 
+          elDestInner.style.textDecoration = "line-through";
+      } else {
+          row.style.color = "";
+          elDestInner.style.textDecoration = "none";
+      }
+      
+      row.classList.toggle("is-gone", !!d.isGone);
+      
+      if(elLine.innerText !== lineT) elLine.innerText = lineT;
+
+      if(elDestInner.innerText !== d.direction) {
+          elDestInner.innerText = d.direction;
+          elDestInner.classList.remove("ping-pong-scroll");
+          elDestInner.style.transform = "translateX(0)";
+          setTimeout(() => {
+             const parent = row.querySelector(".col-dest");
+             if (elDestInner.scrollWidth > parent.offsetWidth) {
+                const diff = parent.offsetWidth - elDestInner.scrollWidth;
+                elDestInner.style.setProperty('--scroll-dist', `${diff - 5}px`);
+                elDestInner.classList.add("ping-pong-scroll");
+             }
+          }, 50);
+      }
+
+      const elInfoInner = row.querySelector(".ticker-inner");
+      const fullInfoHtml = warningSvg + infoText;
+      if(hasInfo) {
+          if(elInfoInner.innerHTML !== fullInfoHtml) elInfoInner.innerHTML = fullInfoHtml;
+          requestAnimationFrame(() => {
+              const width = elInfoInner.offsetWidth + 20; 
+              this._startAnimationLoop(row, width);
+          });
+      }
+
+      const elMin = row.querySelector(".col-min");
+      if(elMin.innerHTML !== finalTimeContent) elMin.innerHTML = finalTimeContent;
+      
+      if (isNow) {
+          if(!elMin.classList.contains("blink")) elMin.classList.add("blink");
+      } else {
+          elMin.classList.remove("blink");
+      }
+    });
+
+    while (board.children.length > visibleRows.length) {
+      const r = board.lastChild;
+      if(r.dataset.rowId && this._animTimers.has(r.dataset.rowId)) {
+          clearTimeout(this._animTimers.get(r.dataset.rowId));
+          this._animTimers.delete(r.dataset.rowId);
+      }
+      board.removeChild(r);
+    }
+  }
+
+  /* ==================================================================================
+     RENDER: MAXI (Classic)
+     ================================================================================== */
   _renderMaxi(state, departures) {
     const FONT = this._config.font_family ? `'${this._config.font_family}', sans-serif` : "'Exo 2', sans-serif";
     const badgeRadius = (this._config.badge_round === false) ? 6 : 16;
     const showInfo = this._config.show_info !== false;
 
-    // Nur Styles/Container neu setzen wenn Layout gewechselt oder leer
     if (!this.querySelector("ha-card") || this._currentLayout !== 'maxi') {
       this._currentLayout = 'maxi';
       this.innerHTML = `
         <style>
+          @font-face { font-family: 'Skyfont'; src: url('/local/Skyfont-NonCommercial.otf') format('opentype'); }
           ha-card { background: var(--ha-card-background, var(--card-background-color, #1c1c1c)); border-radius: 16px !important; padding: 12px !important; color: white !important; font-family: ${FONT} !important; overflow: hidden !important; height: 100%; width: 100%; box-sizing: border-box; display: flex; flex-direction: column; min-height: 0; }
           .header-box { display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 8px; padding-bottom: 8px; flex-shrink: 0; }
           .stop-logo { height: 28px; width: 28px; object-fit: contain; }
@@ -280,17 +714,16 @@ class LinzMonitorCombined extends HTMLElement {
         <ha-card>
           <div class="header-box">
             <img class="stop-logo" src="https://www.irmscher.at/linzag/logos/Haltestelle-Logo.png">
-            <div class="stop-title"></div>
+            <div class="stop-title" id="maxi-title"></div>
           </div>
-          <div class="rows-container"></div>
+          <div class="rows-container" id="maxi-list"></div>
         </ha-card>
       `;
     }
 
-    const container = this.querySelector(".rows-container");
-    const stopTitle = this.querySelector(".stop-title");
+    const container = this.querySelector("#maxi-list");
     const defaultName = (state.attributes.stop_name || "").replace(/Linz\/Donau|Leonding|Linz/gi, "").trim();
-    stopTitle.innerText = this._config.stop_name_override || defaultName;
+    this.querySelector("#maxi-title").innerText = this._config.stop_name_override || defaultName;
 
     const visibleRows = departures.slice(0, this._config.anzahl);
     const activeIds = [];
@@ -324,15 +757,8 @@ class LinzMonitorCombined extends HTMLElement {
       }
 
       const cleanL = d.line.replace("*", "");
-      const isStandard = STANDARD_ROUTES[cleanL]?.includes(d.direction);
-      let lineT = d.line;
-      if (!isStandard && STANDARD_ROUTES[cleanL]) {
-        const dest = d.direction.toLowerCase();
-        if ((cleanL === "3" || cleanL === "3a") && (dest.includes("neue welt") || dest.includes("ferihumerstraße") || dest.includes("remise kleinmünchen"))) lineT = cleanL + "a";
-        else lineT = cleanL + "*";
-      }
+      let lineT = this._getRouteName(d);
 
-      // INFO HTML
       let styledInfoHtml = "";
       if (isCancelled) {
          styledInfoHtml = `
@@ -396,7 +822,6 @@ class LinzMonitorCombined extends HTMLElement {
       rowEl.style.animation = isNow ? "bB 2s infinite" : "none";
       rowEl.className = isCancelled ? "row is-cancelled" : "row";
 
-      // AUTO-SCROLL
       const destEl = rowEl.querySelector(".dest");
       const destWrap = rowEl.querySelector(".dest-wrap");
       if (destWrap && destEl) {
@@ -415,9 +840,9 @@ class LinzMonitorCombined extends HTMLElement {
     });
   }
 
-  /* ----------------------------------------------------------------------------------
-     RENDER: MIDI (V2 Codebase)
-     ---------------------------------------------------------------------------------- */
+  /* ==================================================================================
+     RENDER: MIDI (Compact)
+     ================================================================================== */
   _renderMidi(state, departures) {
     const ROW_H = this._config.row_height || 38;
     const TIME_S = this._config.font_size || 20;
@@ -429,6 +854,7 @@ class LinzMonitorCombined extends HTMLElement {
       this._currentLayout = 'midi';
       this.innerHTML = `
         <style>
+          @font-face { font-family: 'Skyfont'; src: url('/local/Skyfont-NonCommercial.otf') format('opentype'); }
           ha-card { background: var(--ha-card-background, var(--card-background-color, #1c1c1c)); border-radius: 12px !important; padding: 10px !important; color: white !important; font-family: ${FONT} !important; border: 1px solid rgba(255,255,255,0.1); overflow: hidden; height: 100%; width: 100%; box-sizing: border-box; display: flex; flex-direction: column; min-height: 0; isolation: isolate; }
           .title-area { font-size: ${TIME_S}px; font-weight: 700; color: #bbb; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 4px; margin-bottom: 5px; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
           .title-icon { height: ${Math.round(TIME_S * 1.3)}px; width: ${Math.round(TIME_S * 1.3)}px; object-fit: contain; }
@@ -459,17 +885,17 @@ class LinzMonitorCombined extends HTMLElement {
         </style>
         <ha-card>
           <div class="title-area">
-            <img class="title-icon" src="https://www.irmscher.at/linzag/logos/Haltestelle-Logo.pngg">
-            <span class="stop-name"></span>
+            <img class="title-icon" src="https://www.irmscher.at/linzag/logos/Haltestelle-Logo.png">
+            <span class="stop-name" id="midi-title"></span>
           </div>
-          <table><tbody id="list"></tbody></table>
+          <table><tbody id="midi-list"></tbody></table>
         </ha-card>
       `;
     }
 
-    const list = this.querySelector("#list");
+    const list = this.querySelector("#midi-list");
     const defaultName = (state.attributes.stop_name || "").replace(/Linz\/Donau|Leonding|Linz/gi, "").trim();
-    this.querySelector(".stop-name").innerText = this._config.stop_name_override || defaultName;
+    this.querySelector("#midi-title").innerText = this._config.stop_name_override || defaultName;
 
     const visibleRows = departures.slice(0, this._config.anzahl);
     const activeIds = [];
@@ -483,13 +909,7 @@ class LinzMonitorCombined extends HTMLElement {
       const isCancelled = d.canceled || d.cancelled || infoLow.includes("fällt aus") || infoLow.includes("entfällt");
       const isNow = d.countdown === 0 && !d.isGone && !isCancelled;
       const cleanL = d.line.replace("*", "");
-      const isStandard = STANDARD_ROUTES[cleanL]?.includes(d.direction);
-      let lineT = d.line;
-      if (!isStandard && STANDARD_ROUTES[cleanL]) {
-        const dest = d.direction.toLowerCase();
-        if ((cleanL === "3" || cleanL === "3a") && (dest.includes("neue welt") || dest.includes("ferihumerstraße") || dest.includes("remise kleinmünchen"))) lineT = cleanL + "a";
-        else lineT = cleanL + "*";
-      }
+      let lineT = this._getRouteName(d);
 
       if (!row) {
         row = document.createElement("tr");
@@ -516,7 +936,6 @@ class LinzMonitorCombined extends HTMLElement {
       if(destEl.innerText !== d.direction) destEl.innerText = d.direction;
       destEl.style.fontSize = `${DEST_S}px`;
 
-      // Auto-Scroll
       const col = row.querySelector(".col-dest");
       if (col && destEl) {
          if (destEl.scrollWidth > col.offsetWidth) {
@@ -528,7 +947,6 @@ class LinzMonitorCombined extends HTMLElement {
          }
       }
 
-      // LAUFTEXT & ALARM (Overlaid)
       const overlay = row.querySelector(".info-overlay");
       const marquee = row.querySelector(".marquee-text");
       const wrap = row.querySelector(".marquee-wrap");
@@ -563,9 +981,9 @@ class LinzMonitorCombined extends HTMLElement {
     Array.from(list.children).forEach(c => { if (!activeIds.includes(c.getAttribute("data-id"))) list.removeChild(c); });
   }
 
-  /* ----------------------------------------------------------------------------------
-     RENDER: MINI (V3 Codebase - SMART COMBINE)
-     ---------------------------------------------------------------------------------- */
+  /* ==================================================================================
+     RENDER: MINI (Minimal)
+     ================================================================================== */
   _renderMini(state, departures) {
     const ROW_H = this._config.row_height || 32;
     const TIME_S = this._config.font_size || 14;
@@ -580,6 +998,7 @@ class LinzMonitorCombined extends HTMLElement {
       this._currentLayout = 'mini';
       this.innerHTML = `
         <style>
+          @font-face { font-family: 'Skyfont'; src: url('/local/Skyfont-NonCommercial.otf') format('opentype'); }
           ha-card { background: var(--ha-card-background, var(--card-background-color, #1c1c1c)); border-radius: 10px !important; padding: 8px !important; color: white !important; font-family: ${FONT} !important; border: 1px solid rgba(255,255,255,0.1); overflow: hidden; height: 100%; width: 100%; box-sizing: border-box; display: flex; flex-direction: column; min-height: 0; isolation: isolate; }
           .title-area { font-size: ${TIME_S}px; font-weight: 700; color: #bbb; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 2px; margin-bottom: 2px; display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
           .title-icon { height: ${Math.round(TIME_S * 1.2)}px; width: ${Math.round(TIME_S * 1.2)}px; object-fit: contain; }
@@ -610,17 +1029,17 @@ class LinzMonitorCombined extends HTMLElement {
         </style>
         <ha-card>
           <div class="title-area">
-            <img class="title-icon" src="https://www.irmscher.at/linzag/logos/Haltestelle-Logo.pngg">
-            <span class="stop-name"></span>
+            <img class="title-icon" src="https://www.irmscher.at/linzag/logos/Haltestelle-Logo.png">
+            <span class="stop-name" id="mini-title"></span>
           </div>
-          <table><tbody id="list"></tbody></table>
+          <table><tbody id="mini-list"></tbody></table>
         </ha-card>
       `;
     }
 
-    const list = this.querySelector("#list");
+    const list = this.querySelector("#mini-list");
     const defaultName = (state.attributes.stop_name || "").replace(/Linz\/Donau|Leonding|Linz/gi, "").trim();
-    this.querySelector(".stop-name").innerText = this._config.stop_name_override || defaultName;
+    this.querySelector("#mini-title").innerText = this._config.stop_name_override || defaultName;
 
     const visibleRows = departures.slice(0, this._config.anzahl);
     const activeIds = [];
@@ -634,13 +1053,7 @@ class LinzMonitorCombined extends HTMLElement {
       const isCancelled = d.canceled || d.cancelled || infoLow.includes("fällt aus") || infoLow.includes("entfällt");
       const isNow = d.countdown === 0 && !d.isGone && !isCancelled;
       const cleanL = d.line.replace("*", "");
-      const isStandard = STANDARD_ROUTES[cleanL]?.includes(d.direction);
-      let lineT = d.line;
-      if (!isStandard && STANDARD_ROUTES[cleanL]) {
-        const dest = d.direction.toLowerCase();
-        if ((cleanL === "3" || cleanL === "3a") && (dest.includes("neue welt") || dest.includes("ferihumerstraße") || dest.includes("remise kleinmünchen"))) lineT = cleanL + "a";
-        else lineT = cleanL + "*";
-      }
+      let lineT = this._getRouteName(d);
 
       if (!row) {
         row = document.createElement("tr");
@@ -666,15 +1079,12 @@ class LinzMonitorCombined extends HTMLElement {
 
       const destEl = row.querySelector(".dest-text");
       
-      // SMART COMBINE LOGIC (Mini Only)
       let finalDestText = d.direction;
-      if (isCancelled) {
-          finalDestText = `${d.direction} ⚠️ FÄLLT AUS`;
-      }
+      if (isCancelled) finalDestText = `${d.direction} ⚠️ FÄLLT AUS`;
+      
       if(destEl.innerText !== finalDestText) destEl.innerText = finalDestText;
       destEl.style.fontSize = `${DEST_S}px`;
 
-      // Auto-Scroll
       const col = row.querySelector(".col-dest");
       if (col && destEl) {
          if (destEl.scrollWidth > col.offsetWidth) {
@@ -686,7 +1096,6 @@ class LinzMonitorCombined extends HTMLElement {
          }
       }
 
-      // LAUFTEXT (NUR BEI NORMALER INFO, STORNO WIRD COMBINED)
       const overlay = row.querySelector(".info-overlay");
       const marquee = row.querySelector(".marquee-text");
       const wrap = row.querySelector(".marquee-wrap");
@@ -719,11 +1128,14 @@ class LinzMonitorCombined extends HTMLElement {
   getCardSize() { return (this._config.anzahl || 7) + 1; }
 }
 
-customElements.define("linz-monitor-combined", LinzMonitorCombined);
+if (!customElements.get("linz-monitor-irmscher")) {
+  customElements.define("linz-monitor-irmscher", LinzMonitorCombined);
+}
 
 window.customCards = window.customCards || [];
 window.customCards.push({
-  type: "linz-monitor-combined",
-  name: "Linz AG Monitor (Combined)",
-  description: "Kombinierte Abfahrtstafel (Maxi, Midi, Mini)"
+  type: "linz-monitor-irmscher",
+  name: "Linz AG Monitor (Irmscher)",
+  description: "Maxi, Midi, Mini und LED Wall in einer Karte.",
+  preview: true
 });

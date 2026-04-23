@@ -50,8 +50,8 @@ class LinzMonitorIrmscherEditorV11 extends HTMLElement {
   render() {
     if (!this._hass || !this._config) return;
     
-    // NUR SENSOREN MIT "nachste_abfahrt" IM NAMEN ERLAUBEN
-    const entities = Object.keys(this._hass.states).filter(k => k.includes('nachste_abfahrt')).sort();
+    // NUR SENSOREN MIT "nachste_abfahrt" ODER "hybrid" IM NAMEN ERLAUBEN (damit die neuen Sensoren auch gefunden werden)
+    const entities = Object.keys(this._hass.states).filter(k => k.includes('nachste_abfahrt') || k.includes('hybrid')).sort();
     
     const mode = this._config.layout || "maxi"; 
 
@@ -141,13 +141,15 @@ class LinzMonitorIrmscherEditorV11 extends HTMLElement {
 
     this.innerHTML = `
       <style>
-        .irmscher-editor { padding: 15px; background: #1e1e1e; color: #e1e1e1; border-radius: 8px; font-family: sans-serif; border: 1px solid #333; box-sizing: border-box; width: 100%; }
+        .irmscher-editor { padding: 15px; background: #1e1e1e; color: #e1e1e1; border-radius: 8px; font-family: sans-serif; border: 1px solid #333; box-sizing: border-box; width: 100%; color-scheme: dark; }
         .irmscher-editor * { box-sizing: border-box; }
         .irmscher-editor h3 { margin: 0 0 15px 0; color: #fff; border-bottom: 1px solid #444; padding-bottom: 8px; }
         .irmscher-editor h4 { margin: 20px 0 10px 0; color: #aaa; border-bottom: 1px solid #333; padding-bottom: 4px; }
         .form-row { margin-bottom: 15px; width: 100%; }
         .form-row label { display: block; font-weight: bold; margin-bottom: 5px; }
-        .std-input { width: 100%; padding: 8px; background: #333; color: white; border: 1px solid #555; border-radius: 4px; outline: none; transition: border-color 0.3s; }
+        /* FIX FÜR WEISSE DROPDOWNS */
+        .std-input { width: 100%; padding: 8px; background-color: #333 !important; color: #fff !important; border: 1px solid #555; border-radius: 4px; outline: none; transition: border-color 0.3s; appearance: auto; }
+        .std-input option { background-color: #222 !important; color: #fff !important; }
         .std-input:focus { border-color: #FF9900; }
         .grid-2 { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 15px; }
         @media (min-width: 400px) { .grid-2 { grid-template-columns: 1fr 1fr; } }
@@ -514,13 +516,20 @@ class LinzMonitorCombined extends HTMLElement {
             overflow: hidden; padding-right: 5px; height: 100%; align-items: center; position: relative;
           }
           .dest-static, .info-ticker { grid-column: 1; grid-row: 1; white-space: nowrap; }
-          .dest-static { color: #ffffff; text-shadow: 0 0 3px rgba(255,255,255,0.4); opacity: 1; width: 100%; overflow: hidden; transition: opacity 0.2s; }
+          /* FIX: Visibility & Opacity kugelsicher gemacht */
+          .dest-static { color: #ffffff; text-shadow: 0 0 3px rgba(255,255,255,0.4); opacity: 1; visibility: visible; width: 100%; overflow: hidden; transition: opacity 0.2s, visibility 0.2s; }
           .dest-inner { display: inline-block; transition: transform 0.1s; }
           .ping-pong-scroll { animation: scroll-pingpong 6s linear infinite alternate; --scroll-dist: -50px; }
-          .info-ticker { color: ${LED_C}; opacity: 0; position: absolute; left: 0; }
+          .info-ticker { color: ${LED_C}; opacity: 0; visibility: hidden; position: absolute; left: 0; transition: opacity 0.2s, visibility 0.2s; }
 
-          .matrix-row.mode-ticker .dest-static { opacity: 0; }
-          .matrix-row.mode-ticker .info-ticker { opacity: 1; }
+          /* FIX: Wenn mode-ticker aktiv ist, wird das statische Ziel knallhart unsichtbar gemacht */
+          .matrix-row.mode-ticker .dest-static { opacity: 0 !important; visibility: hidden !important; }
+          .matrix-row.mode-ticker .info-ticker { opacity: 1 !important; visibility: visible !important; }
+
+          /* FIX: Rotfärbung bei "Fällt aus" für die gesamte Zeile */
+          .matrix-row.is-cancelled { color: #ff4444 !important; }
+          .matrix-row.is-cancelled .dest-static { color: #ff4444 !important; }
+          .matrix-row.is-cancelled .col-line { color: #ff4444 !important; }
 
           @keyframes scroll-pingpong { 0%, 20% { transform: translateX(0); } 80%, 100% { transform: translateX(var(--scroll-dist)); } }
 
@@ -618,12 +627,12 @@ class LinzMonitorCombined extends HTMLElement {
       const elLine = row.querySelector(".col-line");
       const elDestInner = row.querySelector(".dest-inner");
 
-      // STRIKETHROUGH FÜR ZIEL & FARBE
+      // FIX: STRIKETHROUGH FÜR ZIEL & FARBE über CSS Klasse steuern
       if (isCancelled) {
-          row.style.color = "#ff4444"; 
+          row.classList.add("is-cancelled");
           elDestInner.style.textDecoration = "line-through";
       } else {
-          row.style.color = "";
+          row.classList.remove("is-cancelled");
           elDestInner.style.textDecoration = "none";
       }
       

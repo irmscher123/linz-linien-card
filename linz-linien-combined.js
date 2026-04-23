@@ -553,7 +553,9 @@ class LinzMonitorCombined extends HTMLElement {
     const board = this.querySelector("#board");
     this._updateClockDisplay();
 
-    const defaultName = (state.attributes.stop_name || "").replace(/Linz/Donau|Leonding|Linz/gi, "").trim();
+    // *** BUGFIX FÜR DEN DATEI-EDITOR IN HOME ASSISTANT ***
+    const filterRegex = new RegExp("Linz/Donau|Leonding|Linz", "gi");
+    const defaultName = (state.attributes.stop_name || "").replace(filterRegex, "").trim();
     const finalName = this._config.stop_name_override || defaultName;
     if(this.querySelector("#led-title").innerText !== finalName) this.querySelector("#led-title").innerText = finalName;
 
@@ -636,7 +638,7 @@ class LinzMonitorCombined extends HTMLElement {
           setTimeout(() => {
              const parent = row.querySelector(".col-dest");
              if (elDestInner.scrollWidth > parent.offsetWidth) {
-                 const diff = parent.offsetWidth - elDestInner.scrollWidth;
+                const diff = parent.offsetWidth - elDestInner.scrollWidth;
                 elDestInner.style.setProperty('--scroll-dist', `${diff - 5}px`);
                 elDestInner.classList.add("ping-pong-scroll");
              }
@@ -735,7 +737,11 @@ class LinzMonitorCombined extends HTMLElement {
     }
 
     const container = this.querySelector("#maxi-list");
-    const defaultName = (state.attributes.stop_name || "").replace(/Linz/Donau|Leonding|Linz/gi, "").trim();
+    
+    // *** BUGFIX FÜR DEN DATEI-EDITOR IN HOME ASSISTANT ***
+    const filterRegex = new RegExp("Linz/Donau|Leonding|Linz", "gi");
+    const defaultName = (state.attributes.stop_name || "").replace(filterRegex, "").trim();
+    
     this.querySelector("#maxi-title").innerText = this._config.stop_name_override || defaultName;
 
     const visibleRows = departures.slice(0, this._config.anzahl);
@@ -907,7 +913,11 @@ class LinzMonitorCombined extends HTMLElement {
     }
 
     const list = this.querySelector("#midi-list");
-    const defaultName = (state.attributes.stop_name || "").replace(/Linz/Donau|Leonding|Linz/gi, "").trim();
+    
+    // *** BUGFIX FÜR DEN DATEI-EDITOR IN HOME ASSISTANT ***
+    const filterRegex = new RegExp("Linz/Donau|Leonding|Linz", "gi");
+    const defaultName = (state.attributes.stop_name || "").replace(filterRegex, "").trim();
+    
     this.querySelector("#midi-title").innerText = this._config.stop_name_override || defaultName;
 
     const visibleRows = departures.slice(0, this._config.anzahl);
@@ -1051,7 +1061,11 @@ class LinzMonitorCombined extends HTMLElement {
     }
 
     const list = this.querySelector("#mini-list");
-    const defaultName = (state.attributes.stop_name || "").replace(/Linz/Donau|Leonding|Linz/gi, "").trim();
+    
+    // *** BUGFIX FÜR DEN DATEI-EDITOR IN HOME ASSISTANT ***
+    const filterRegex = new RegExp("Linz/Donau|Leonding|Linz", "gi");
+    const defaultName = (state.attributes.stop_name || "").replace(filterRegex, "").trim();
+    
     this.querySelector("#mini-title").innerText = this._config.stop_name_override || defaultName;
 
     const visibleRows = departures.slice(0, this._config.anzahl);

@@ -11,7 +11,8 @@ const LINE_COLORS = {
   "50": "#00CC00", "70": "#955336", "71": "#955336", "72": "#955336", "73": "#955336", 
   "77": "#955336", "101": "#DBAF3B", "102": "#48A643", "103": "#48A643", "104": "#DBAF3B", 
   "105": "#48A643", "106": "#48A643", "107": "#DBAF3B", "108": "#DBAF3B", "191": "#48A643", 
-  "192": "#DBAF3B", "194": "#48A643", "150": "#DBAF3B", "N82": "#C67DB5", "N83": "#008DD0", "N84": "#C40653" 
+  "192": "#DBAF3B", "194": "#48A643", "150": "#DBAF3B", "N82": "#C67DB5", "N83": "#008DD0", "N84": "#C40653",
+  "SE": "#FF9900"
 };
 
 const STANDARD_ROUTES = {
@@ -146,12 +147,12 @@ class LinzMonitorIrmscherEditorV11 extends HTMLElement {
         .irmscher-editor h3 { margin: 0 0 15px 0; color: #fff; border-bottom: 1px solid #444; padding-bottom: 8px; }
         .irmscher-editor h4 { margin: 20px 0 10px 0; color: #aaa; border-bottom: 1px solid #333; padding-bottom: 4px; }
         .form-row { margin-bottom: 15px; width: 100%; }
-        .form-row label { display: block; font-weight: bold; margin-bottom: 5px; }
-        /* FIX FÜR WEISSE DROPDOWNS */
-        .std-input { width: 100%; padding: 8px; background-color: #333 !important; color: #fff !important; border: 1px solid #555; border-radius: 4px; outline: none; transition: border-color 0.3s; appearance: auto; }
+        .form-row label { display: block; font-weight: bold; margin-bottom: 2px; }
+        /* FIX FÜR WEISSE DROPDOWNS & LAYOUT */
+        .std-input { width: 100%; padding: 8px; background-color: #333 !important; color: #fff !important; border: 1px solid #555; border-radius: 4px; outline: none; transition: border-color 0.3s; appearance: auto; box-sizing: border-box; margin-top: 4px; }
         .std-input option { background-color: #222 !important; color: #fff !important; }
         .std-input:focus { border-color: #FF9900; }
-        .grid-2 { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 15px; }
+        .grid-2 { display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 15px; }
         @media (min-width: 400px) { .grid-2 { grid-template-columns: 1fr 1fr; } }
         
         .filter-box { margin-top: 15px; background: #222; padding: 15px; border-radius: 6px; border: 1px solid #444; }
@@ -314,10 +315,11 @@ class LinzMonitorCombined extends HTMLElement {
       ...config 
     };
     
+    // FONT FIX: Lädt Exo 2 als Standard, wenn das Feld leer gelassen wurde!
     if (this._config.layout === 'led') {
        loadGoogleFont("DotGothic16");
-    } else if (this._config.font_family) {
-       loadGoogleFont(this._config.font_family);
+    } else {
+       loadGoogleFont(this._config.font_family || "Exo 2");
     }
   }
 
@@ -516,17 +518,14 @@ class LinzMonitorCombined extends HTMLElement {
             overflow: hidden; padding-right: 5px; height: 100%; align-items: center; position: relative;
           }
           .dest-static, .info-ticker { grid-column: 1; grid-row: 1; white-space: nowrap; }
-          /* FIX: Visibility & Opacity kugelsicher gemacht */
           .dest-static { color: #ffffff; text-shadow: 0 0 3px rgba(255,255,255,0.4); opacity: 1; visibility: visible; width: 100%; overflow: hidden; transition: opacity 0.2s, visibility 0.2s; }
           .dest-inner { display: inline-block; transition: transform 0.1s; }
           .ping-pong-scroll { animation: scroll-pingpong 6s linear infinite alternate; --scroll-dist: -50px; }
           .info-ticker { color: ${LED_C}; opacity: 0; visibility: hidden; position: absolute; left: 0; transition: opacity 0.2s, visibility 0.2s; }
 
-          /* FIX: Wenn mode-ticker aktiv ist, wird das statische Ziel knallhart unsichtbar gemacht */
           .matrix-row.mode-ticker .dest-static { opacity: 0 !important; visibility: hidden !important; }
           .matrix-row.mode-ticker .info-ticker { opacity: 1 !important; visibility: visible !important; }
 
-          /* FIX: Rotfärbung bei "Fällt aus" für die gesamte Zeile */
           .matrix-row.is-cancelled { color: #ff4444 !important; }
           .matrix-row.is-cancelled .dest-static { color: #ff4444 !important; }
           .matrix-row.is-cancelled .col-line { color: #ff4444 !important; }
@@ -627,7 +626,6 @@ class LinzMonitorCombined extends HTMLElement {
       const elLine = row.querySelector(".col-line");
       const elDestInner = row.querySelector(".dest-inner");
 
-      // FIX: STRIKETHROUGH FÜR ZIEL & FARBE über CSS Klasse steuern
       if (isCancelled) {
           row.classList.add("is-cancelled");
           elDestInner.style.textDecoration = "line-through";
@@ -646,9 +644,10 @@ class LinzMonitorCombined extends HTMLElement {
           elDestInner.style.transform = "translateX(0)";
           setTimeout(() => {
              const parent = row.querySelector(".col-dest");
-             if (elDestInner.scrollWidth > parent.offsetWidth) {
+             // 2 PIXEL TOLERANZ HINZUGEFÜGT
+             if (elDestInner.scrollWidth > parent.offsetWidth - 2) {
                 const diff = parent.offsetWidth - elDestInner.scrollWidth;
-                elDestInner.style.setProperty('--scroll-dist', `${diff - 5}px`);
+                elDestInner.style.setProperty('--scroll-dist', `${diff - 10}px`);
                 elDestInner.classList.add("ping-pong-scroll");
              }
           }, 50);
@@ -853,9 +852,10 @@ class LinzMonitorCombined extends HTMLElement {
       const destEl = rowEl.querySelector(".dest");
       const destWrap = rowEl.querySelector(".dest-wrap");
       if (destWrap && destEl) {
-         if (destEl.scrollWidth > destWrap.offsetWidth) {
+         // 2 PIXEL TOLERANZ HINZUGEFÜGT
+         if (destEl.scrollWidth > destWrap.offsetWidth - 2) {
             const diff = destWrap.offsetWidth - destEl.scrollWidth;
-            destEl.style.setProperty('--scroll-dist', `${diff - 5}px`);
+            destEl.style.setProperty('--scroll-dist', `${diff - 10}px`);
             destEl.classList.add("ping-pong-scroll");
          } else {
             destEl.classList.remove("ping-pong-scroll");
@@ -970,9 +970,10 @@ class LinzMonitorCombined extends HTMLElement {
 
       const col = row.querySelector(".col-dest");
       if (col && destEl) {
-         if (destEl.scrollWidth > col.offsetWidth) {
+         // 2 PIXEL TOLERANZ HINZUGEFÜGT
+         if (destEl.scrollWidth > col.offsetWidth - 2) {
             const diff = col.offsetWidth - destEl.scrollWidth;
-            destEl.style.setProperty('--scroll-dist', `${diff - 5}px`);
+            destEl.style.setProperty('--scroll-dist', `${diff - 10}px`);
             destEl.classList.add("ping-pong-scroll");
          } else {
             destEl.classList.remove("ping-pong-scroll");
@@ -1123,9 +1124,10 @@ class LinzMonitorCombined extends HTMLElement {
 
       const col = row.querySelector(".col-dest");
       if (col && destEl) {
-         if (destEl.scrollWidth > col.offsetWidth) {
+         // 2 PIXEL TOLERANZ HINZUGEFÜGT
+         if (destEl.scrollWidth > col.offsetWidth - 2) {
             const diff = col.offsetWidth - destEl.scrollWidth;
-            destEl.style.setProperty('--scroll-dist', `${diff - 5}px`);
+            destEl.style.setProperty('--scroll-dist', `${diff - 10}px`);
             destEl.classList.add("ping-pong-scroll");
          } else {
             destEl.classList.remove("ping-pong-scroll");

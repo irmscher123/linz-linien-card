@@ -1,6 +1,6 @@
 /* ---------------------------------------------------------
    LinzAG Monitor – ULTIMATE COMBINED (Maxi, Midi, Mini, LED Wall)
-   (Features: Dynamic Filters, Orange LED (#FF9900), Direction Filter, Skyfont)
+   (Features: Dynamic Filters, Orange LED (#FF9900), Direction Filter, Skyfont, Zeitanzeige-Wahl)
    --------------------------------------------------------- */
 
 const LINE_COLORS = { 
@@ -42,8 +42,8 @@ const loadGoogleFont = (fontName) => {
   document.head.appendChild(link);
 };
 
-/* --- DYNAMISCHER EDITOR (CACHE-BYPASS V11) --- */
-class LinzMonitorIrmscherEditorV11 extends HTMLElement {
+/* --- DYNAMISCHER EDITOR (CACHE-BYPASS V12) --- */
+class LinzMonitorIrmscherEditorV12 extends HTMLElement {
   setConfig(config) { this._config = config; this.render(); }
   set hass(hass) { this._hass = hass; if (!this._initialized) { this.render(); this._initialized = true; } }
 
@@ -169,7 +169,7 @@ class LinzMonitorIrmscherEditorV11 extends HTMLElement {
       </style>
 
       <div class="irmscher-editor">
-         <h3>⚙️ LinzAG Monitor (Einstellungen)</h3>
+         <h3>⚙️ LinzAG Monitor (Irmscher)</h3>
          
          <div class="form-row">
            <label>📌 Haltestelle (Sensor auswählen)</label>
@@ -214,6 +214,16 @@ class LinzMonitorIrmscherEditorV11 extends HTMLElement {
            </div>
          </div>
 
+         <div class="grid-2" style="margin-top: 15px;">
+           <div>
+             <label>⏱️ Zeitanzeige</label>
+             <select id="time_format" class="std-input">
+               <option value="countdown" ${this._config.time_format !== "absolute" ? 'selected' : ''}>In Minuten (Standard)</option>
+               <option value="absolute" ${this._config.time_format === "absolute" ? 'selected' : ''}>Uhrzeit (z.B. 14:30)</option>
+             </select>
+           </div>
+         </div>
+
          <h4>🛠️ Design Einstellungen (${mode.toUpperCase()})</h4>
          ${specificHtml}
       </div>
@@ -252,15 +262,15 @@ class LinzMonitorIrmscherEditorV11 extends HTMLElement {
   }
 }
 
-// Registry für den V11 Editor (Zwingt HA, den Cache zu ignorieren)
-if (!customElements.get("linz-monitor-combined-editor-v11")) {
-  customElements.define("linz-monitor-combined-editor-v11", LinzMonitorIrmscherEditorV11);
+// Registry für den V12 Editor (Zwingt HA, den Cache zu ignorieren)
+if (!customElements.get("linz-monitor-combined-editor-v12")) {
+  customElements.define("linz-monitor-combined-editor-v12", LinzMonitorIrmscherEditorV12);
 }
 
 
 /* --- MAIN CARD --- */
 class LinzMonitorCombined extends HTMLElement {
-  static getConfigElement() { return document.createElement("linz-monitor-combined-editor-v11"); }
+  static getConfigElement() { return document.createElement("linz-monitor-combined-editor-v12"); }
   static getStubConfig() { return { entity: "", layout: "led", anzahl: 7 }; }
 
   constructor() { 
@@ -285,6 +295,7 @@ class LinzMonitorCombined extends HTMLElement {
       layout: "maxi",
       anzahl: 7, 
       sortierung: "echtzeit", 
+      time_format: "countdown",
       filter: "", 
       filter_direction: "",
       stop_name_override: "",
@@ -540,7 +551,7 @@ class LinzMonitorCombined extends HTMLElement {
     const board = this.querySelector("#board");
     this._updateClockDisplay();
 
-    const defaultName = (state.attributes.stop_name || "").replace(/Linz\/Donau|Leonding|Linz/gi, "").trim();
+    const defaultName = (state.attributes.stop_name || "").replace(/Linz/Donau|Leonding|Linz/gi, "").trim();
     const finalName = this._config.stop_name_override || defaultName;
     if(this.querySelector("#led-title").innerText !== finalName) this.querySelector("#led-title").innerText = finalName;
 
@@ -571,7 +582,7 @@ class LinzMonitorCombined extends HTMLElement {
       if (isCancelled) timeHtml = `<span style="text-decoration: line-through;">${d.scheduled}</span>`; 
       else if (isNow) timeHtml = `0<span class='min-small'>'</span>`; 
       else if (d.isGone) timeHtml = `${d.scheduled}`;
-      else if (d.countdown >= 45) timeHtml = d.scheduled;
+      else if (this._config.time_format === "absolute" || d.countdown >= 45) timeHtml = d.scheduled;
       else timeHtml = `${d.countdown}<span class='min-small'>'</span>`;
       
       const finalTimeContent = delayHtml + timeHtml;
@@ -722,7 +733,7 @@ class LinzMonitorCombined extends HTMLElement {
     }
 
     const container = this.querySelector("#maxi-list");
-    const defaultName = (state.attributes.stop_name || "").replace(/Linz\/Donau|Leonding|Linz/gi, "").trim();
+    const defaultName = (state.attributes.stop_name || "").replace(/Linz/Donau|Leonding|Linz/gi, "").trim();
     this.querySelector("#maxi-title").innerText = this._config.stop_name_override || defaultName;
 
     const visibleRows = departures.slice(0, this._config.anzahl);
@@ -746,12 +757,13 @@ class LinzMonitorCombined extends HTMLElement {
          metaVal = "";
       } else if (isNow) {
          timeVal = `<div class="dots"><span></span><span></span><span></span></div>`;
+         metaVal = (this._config.time_format === "absolute") ? "" : metaVal;
       } else if (d.isGone) {
          timeVal = `<span class="gone-txt">${d.scheduled}</span>`;
          metaVal = "";
-      } else if (d.countdown >= 45) {
+      } else if (this._config.time_format === "absolute" || d.countdown >= 45) {
          timeVal = d.scheduled;
-         metaVal = ""; 
+         metaVal = (this._config.time_format === "absolute" && d.countdown < 45 && !d.isGone && !isNow) ? `in ${d.countdown} Min` : ""; 
       } else {
          timeVal = `${d.countdown}<span class="min-u">Min</span>`;
       }
@@ -894,7 +906,7 @@ class LinzMonitorCombined extends HTMLElement {
     }
 
     const list = this.querySelector("#midi-list");
-    const defaultName = (state.attributes.stop_name || "").replace(/Linz\/Donau|Leonding|Linz/gi, "").trim();
+    const defaultName = (state.attributes.stop_name || "").replace(/Linz/Donau|Leonding|Linz/gi, "").trim();
     this.querySelector("#midi-title").innerText = this._config.stop_name_override || defaultName;
 
     const visibleRows = departures.slice(0, this._config.anzahl);
@@ -929,7 +941,7 @@ class LinzMonitorCombined extends HTMLElement {
 
       if (isCancelled) timeCol.innerHTML = `<span style="text-decoration: line-through; color: #ff5252; opacity: 0.9;">${d.scheduled}</span>`;
       else if (isNow) timeCol.innerHTML = `<div style="display:flex;justify-content:flex-end;"><img src="https://www.irmscher.at/linzag/linzlinien-z.png" style="width:22px;height:22px;object-fit:contain;"></div>`;
-      else if (d.isGone || d.countdown >= 45) timeCol.innerHTML = `${d.scheduled}`;
+      else if (this._config.time_format === "absolute" || d.isGone || d.countdown >= 45) timeCol.innerHTML = `${delayText}${d.scheduled}`;
       else timeCol.innerHTML = `${delayText}${d.countdown}<span style="font-size:${TIME_S-3}px;opacity:0.6;margin-left:2px">Min</span>`;
 
       const destEl = row.querySelector(".dest-text");
@@ -1038,7 +1050,7 @@ class LinzMonitorCombined extends HTMLElement {
     }
 
     const list = this.querySelector("#mini-list");
-    const defaultName = (state.attributes.stop_name || "").replace(/Linz\/Donau|Leonding|Linz/gi, "").trim();
+    const defaultName = (state.attributes.stop_name || "").replace(/Linz/Donau|Leonding|Linz/gi, "").trim();
     this.querySelector("#mini-title").innerText = this._config.stop_name_override || defaultName;
 
     const visibleRows = departures.slice(0, this._config.anzahl);
@@ -1074,7 +1086,7 @@ class LinzMonitorCombined extends HTMLElement {
 
       if (isCancelled) timeCol.innerHTML = `<span style="text-decoration: line-through; color: #ff5252; opacity: 0.9;">${d.scheduled}</span>`;
       else if (isNow) timeCol.innerHTML = `<div style="display:flex;justify-content:flex-end;"><img src="https://www.irmscher.at/linzag/linzlinien-z.png" style="width:${Math.round(B_SIZE*0.8)}px;height:${Math.round(B_SIZE*0.8)}px;object-fit:contain;"></div>`;
-      else if (d.isGone || d.countdown >= 45) timeCol.innerHTML = `${d.scheduled}`;
+      else if (this._config.time_format === "absolute" || d.isGone || d.countdown >= 45) timeCol.innerHTML = `${delayText}${d.scheduled}`;
       else timeCol.innerHTML = `${delayText}${d.countdown}`;
 
       const destEl = row.querySelector(".dest-text");

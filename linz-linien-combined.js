@@ -49,7 +49,7 @@ class LinzMonitorIrmscherEditorV12 extends HTMLElement {
 
   render() {
     if (!this._hass || !this._config) return;
-    const entities = Object.keys(this._hass.states).filter(k => k.includes('linz_ag') || this._hass.states[k].attributes?.departureList).sort();
+    const entities = Object.keys(this._hass.states).filter(k => k.includes('nachste_abfahrt') || this._hass.states[k].attributes?.departureList).sort();
     
     const mode = this._config.layout || "maxi"; 
 

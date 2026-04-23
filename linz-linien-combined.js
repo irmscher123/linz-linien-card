@@ -1,6 +1,6 @@
 /* ---------------------------------------------------------
    LinzAG Monitor – ULTIMATE COMBINED (Maxi, Midi, Mini, LED Wall)
-   (Features: Dynamic Filters, Orange LED (#FF9900), Direction Filter, Skyfont, Zeitanzeige-Wahl)
+   (Features: Dynamic Filters, Orange LED (#FF9900), Direction Filter, Skyfont, Zeitanzeige, Sensor-Filter)
    --------------------------------------------------------- */
 
 const LINE_COLORS = { 
@@ -42,14 +42,16 @@ const loadGoogleFont = (fontName) => {
   document.head.appendChild(link);
 };
 
-/* --- DYNAMISCHER EDITOR (CACHE-BYPASS V12) --- */
-class LinzMonitorIrmscherEditorV12 extends HTMLElement {
+/* --- DYNAMISCHER EDITOR --- */
+class LinzMonitorIrmscherEditorV11 extends HTMLElement {
   setConfig(config) { this._config = config; this.render(); }
   set hass(hass) { this._hass = hass; if (!this._initialized) { this.render(); this._initialized = true; } }
 
   render() {
     if (!this._hass || !this._config) return;
-    const entities = Object.keys(this._hass.states).filter(k => k.includes('nachste_abfahrt') || this._hass.states[k].attributes?.departureList).sort();
+    
+    // NUR SENSOREN MIT "nachste_abfahrt" IM NAMEN ERLAUBEN
+    const entities = Object.keys(this._hass.states).filter(k => k.includes('nachste_abfahrt')).sort();
     
     const mode = this._config.layout || "maxi"; 
 
@@ -262,15 +264,15 @@ class LinzMonitorIrmscherEditorV12 extends HTMLElement {
   }
 }
 
-// Registry für den V12 Editor (Zwingt HA, den Cache zu ignorieren)
-if (!customElements.get("linz-monitor-combined-editor-v12")) {
-  customElements.define("linz-monitor-combined-editor-v12", LinzMonitorIrmscherEditorV12);
+// Registry für den Editor
+if (!customElements.get("linz-monitor-combined-editor-v11")) {
+  customElements.define("linz-monitor-combined-editor-v11", LinzMonitorIrmscherEditorV11);
 }
 
 
 /* --- MAIN CARD --- */
 class LinzMonitorCombined extends HTMLElement {
-  static getConfigElement() { return document.createElement("linz-monitor-combined-editor-v12"); }
+  static getConfigElement() { return document.createElement("linz-monitor-combined-editor-v11"); }
   static getStubConfig() { return { entity: "", layout: "led", anzahl: 7 }; }
 
   constructor() { 
@@ -634,7 +636,7 @@ class LinzMonitorCombined extends HTMLElement {
           setTimeout(() => {
              const parent = row.querySelector(".col-dest");
              if (elDestInner.scrollWidth > parent.offsetWidth) {
-                const diff = parent.offsetWidth - elDestInner.scrollWidth;
+                 const diff = parent.offsetWidth - elDestInner.scrollWidth;
                 elDestInner.style.setProperty('--scroll-dist', `${diff - 5}px`);
                 elDestInner.classList.add("ping-pong-scroll");
              }
@@ -757,7 +759,6 @@ class LinzMonitorCombined extends HTMLElement {
          metaVal = "";
       } else if (isNow) {
          timeVal = `<div class="dots"><span></span><span></span><span></span></div>`;
-         metaVal = (this._config.time_format === "absolute") ? "" : metaVal;
       } else if (d.isGone) {
          timeVal = `<span class="gone-txt">${d.scheduled}</span>`;
          metaVal = "";

@@ -440,11 +440,15 @@ class LinzMonitorCombined extends HTMLElement {
     run();
   }
 
+  // --- DIE KORRIGIERTE _getRouteName FUNKTION ---
   _getRouteName(d) {
       const cleanL = d.line.replace("*", "");
-      const isStandard = STANDARD_ROUTES[cleanL]?.includes(d.direction);
+      // Bereinigt unsichtbare Leerzeichen und gleicht alles in Kleinbuchstaben ab
+      const dest = (d.direction || "").trim().toLowerCase();
+      
+      const isStandard = (STANDARD_ROUTES[cleanL] || []).some(s => s.trim().toLowerCase() === dest);
+      
       if (!isStandard && STANDARD_ROUTES[cleanL]) {
-        const dest = d.direction.toLowerCase();
         if ((cleanL === "3" || cleanL === "3a") && (dest.includes("neue welt") || dest.includes("ferihumerstraße") || dest.includes("remise kleinmünchen"))) {
           return cleanL + "a";
         } else if (cleanL === "33" && dest.includes("rudolfstraße")) {

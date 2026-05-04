@@ -16,8 +16,8 @@ const LINE_COLORS = {
 };
 
 const STANDARD_ROUTES = {
-  '1': ['Auwiesen', 'Universität', 'JKU | Universität"], '2': ['solarCity', 'Universität'],
-  '3': ['Landgutstraße', 'Trauner Kreuzung', 'Trauner Kreuzung P&R'], '4': ['Landgutstraße', 'Schloss Traun'],
+  '1': ['Auwiesen', 'Universität', 'JKU | Universität'], '2': ['solarCity', 'Universität', 'JKU | Universität'],
+  '3': ['Landgutstraße', 'Trauner Kreuzung P&R', 'Trauner Kreuzung'], '4': ['Landgutstraße', 'Schloss Traun'],
   '50': ['Pöstlingberg', 'Hauptplatz'], 'N82': ['solarCity', 'Universität'],
   'N84': ['Hauptbahnhof', 'Schloss Traun'], '11': ['Pichlinger See','Sporthalle Leonding'],
   '12': ['Karlhof', 'Auwiesen'], '17': ['Hitzing', 'Fernheizkraftwerk'], 
@@ -25,10 +25,10 @@ const STANDARD_ROUTES = {
   '26': ['St. Margarethen', 'Stadion'], '27': ['Fernheizkraftwerk', 'Chemiepark'],
   '33': ['Riesenhof', 'Pleschinger See'], '33a': ['Rudolfstraße', 'Plesching'],
   '38': ['Rudolfstraße', 'Jäger im Tal'], '41': ['Hessenplatz', 'Baintwiese'],
-  '43': ['Hessenplatz', 'Stadtfriedhof'], '45': ['Froschberg', 'Stieglbauernstraße'],
+  '43': ['Hessenplatz', 'Stadtfriedhof', 'Stadtfriedhof Linz'], '45': ['Froschberg', 'Stieglbauernstraße'],
   '46': ['Hafenportal', 'Froschberg'], '70': ['Stadtfriedhof', 'Schiffswerft'],
   '71': ['Baintwiese', 'Industriezeile'], '72': ['Schiffswerft', 'Stadtfriedhof'],
-  '73': ['Fernheizkraftwerk', 'Baintwiese'], '77': ['Universität', 'JKU | Universität Nord', 'Hauptbahnhof'],
+  '73': ['Fernheizkraftwerk', 'Baintwiese'], '77': ['Universität', 'Hauptbahnhof', 'JKU | Universität Nord'],
   '108': ['Simonystraße', 'Lunzerstraße Ost']
 };
 

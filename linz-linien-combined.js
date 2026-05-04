@@ -25,7 +25,7 @@ const STANDARD_ROUTES = {
   'N84': ['Hauptbahnhof', 'Schloss Traun'], 
   '11': ['Pichlinger See','Sporthalle Leonding'],
   '12': ['Karlhof', 'Auwiesen'], 
-  '17': ['Hitzing', 'Fernheizkraftwerk', 'Industriezeile'], 
+  '17': ['Hitzing', 'Fernheizkraftwerk'], 
   '19': ['Pichlinger See', 'Fernheizkraftwerk'], 
   '25': ['Oed', 'Karlhof'],
   '26': ['St. Margarethen', 'Stadion'], 

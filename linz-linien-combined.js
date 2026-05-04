@@ -16,8 +16,8 @@ const LINE_COLORS = {
 };
 
 const STANDARD_ROUTES = {
-  '1': ['Auwiesen', 'Universität'], '2': ['solarCity', 'Universität'],
-  '3': ['Landgutstraße', 'Trauner Kreuzung P&R'], '4': ['Landgutstraße', 'Schloss Traun'],
+  '1': ['Auwiesen', 'Universität', 'JKU | Universität"], '2': ['solarCity', 'Universität'],
+  '3': ['Landgutstraße', 'Trauner Kreuzung', 'Trauner Kreuzung P&R'], '4': ['Landgutstraße', 'Schloss Traun'],
   '50': ['Pöstlingberg', 'Hauptplatz'], 'N82': ['solarCity', 'Universität'],
   'N84': ['Hauptbahnhof', 'Schloss Traun'], '11': ['Pichlinger See','Sporthalle Leonding'],
   '12': ['Karlhof', 'Auwiesen'], '17': ['Hitzing', 'Fernheizkraftwerk'], 
@@ -28,7 +28,7 @@ const STANDARD_ROUTES = {
   '43': ['Hessenplatz', 'Stadtfriedhof'], '45': ['Froschberg', 'Stieglbauernstraße'],
   '46': ['Hafenportal', 'Froschberg'], '70': ['Stadtfriedhof', 'Schiffswerft'],
   '71': ['Baintwiese', 'Industriezeile'], '72': ['Schiffswerft', 'Stadtfriedhof'],
-  '73': ['Fernheizkraftwerk', 'Baintwiese'], '77': ['Universität', 'Hauptbahnhof'],
+  '73': ['Fernheizkraftwerk', 'Baintwiese'], '77': ['Universität', 'JKU | Universität Nord', 'Hauptbahnhof'],
   '108': ['Simonystraße', 'Lunzerstraße Ost']
 };
 
